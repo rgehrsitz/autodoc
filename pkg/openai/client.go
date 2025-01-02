@@ -9,6 +9,7 @@ import (
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/shared"
 	"github.com/rgehrsitz/AutoDoc/pkg/chunk"
 )
 
@@ -33,13 +34,13 @@ func (c *Client) AnalyzeSource(ctx context.Context, code string, language string
 	chunks := c.Chunker.Split(code)
 	var analyses []string
 
-	for _, chunk := range chunks {
+	for _, ck := range chunks {
 		prompt := "Please analyze and document this code segment"
 		if language != "" {
 			// Capitalize the first letter of the language for better readability
 			prompt += " written in " + strings.Title(language) + "."
 		}
-		prompt += " (lines " + fmt.Sprintf("%d-%d", chunk.StartLine, chunk.EndLine) + "):\n" + chunk.Content
+		prompt += " (lines " + fmt.Sprintf("%d-%d", ck.StartLine, ck.EndLine) + "):\n" + ck.Content
 
 		resp, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 			Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
@@ -57,4 +58,34 @@ func (c *Client) AnalyzeSource(ctx context.Context, code string, language string
 	}
 
 	return strings.Join(analyses, "\n\n"), nil
+}
+
+// GenerateEmbedding generates an embedding for the given text using the latest openai-go library.
+func (c *Client) GenerateEmbedding(ctx context.Context, text string) ([]float64, error) {
+	resp, err := c.client.Embeddings.New(ctx, openai.EmbeddingNewParams{
+		// Because the library defines a “Field” type for Model, we wrap
+		// the string constant in openai.F(...).
+		Model: openai.F(openai.EmbeddingModelTextEmbeddingAda002),
+
+		// Input must be a union type. We convert our string to a union
+		// with shared.UnionString(...), then wrap it in openai.F[...]() again.
+		Input: openai.F[openai.EmbeddingNewParamsInputUnion](
+			shared.UnionString(text),
+		),
+
+		// Optionally set other fields (like Dimensions, EncodingFormat, etc.)
+		// Dimensions:     openai.F(int64(1)),
+		// EncodingFormat: openai.F(openai.EmbeddingNewParamsEncodingFormatFloat),
+		// User:           openai.F("user-1234"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error calling Embeddings.New: %w", err)
+	}
+
+	if len(resp.Data) == 0 {
+		return nil, fmt.Errorf("no embedding data returned")
+	}
+
+	// Return the embedding for the first (and only) input text
+	return resp.Data[0].Embedding, nil
 }
