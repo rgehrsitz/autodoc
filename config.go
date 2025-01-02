@@ -7,7 +7,11 @@ import (
 )
 
 type Config struct {
-	OpenAIKey string
+	OpenAIKey    string
+	ProjectName  string
+	ProjectURL   string
+	Theme        string
+	CustomStyles map[string]string
 }
 
 func LoadConfig() (*Config, error) {
@@ -17,6 +21,10 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
-		OpenAIKey: apiKey,
+		OpenAIKey:    apiKey,
+		ProjectName:  "AutoDoc",                              // Default value or load from environment
+		ProjectURL:   "https://github.com/rgehrsitz/AutoDoc", // Default value or load from environment
+		Theme:        "light",                                // Default value
+		CustomStyles: map[string]string{},                    // Initialize as needed
 	}, nil
 }

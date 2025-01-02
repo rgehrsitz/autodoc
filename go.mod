@@ -1,6 +1,6 @@
 module github.com/rgehrsitz/AutoDoc
 
-go 1.21
+go 1.23.4
 
 require (
 	github.com/dgraph-io/badger/v4 v4.5.0

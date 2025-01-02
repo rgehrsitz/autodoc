@@ -12,7 +12,7 @@ import (
 type Collector interface {
 	Clone(ctx context.Context, repoURL string) (string, error)
 	ListFiles(ctx context.Context, path string) ([]string, error)
-	ReadFile(path string) ([]byte, error)
+	ReadFile(path string) ([]byte, error) // Added method
 }
 
 // FileInfo represents information about a source file
@@ -61,7 +61,7 @@ func (c *YourCollectorStruct) ListFiles(ctx context.Context, path string) ([]str
 	return files, nil
 }
 
-// ReadFile reads the content of a file.
+// ReadFile reads the content of the specified file.
 func (c *YourCollectorStruct) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }

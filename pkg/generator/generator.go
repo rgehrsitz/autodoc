@@ -52,7 +52,7 @@ func (g *Generator) GenerateDocumentation(ctx context.Context, repoURL string) e
 	}
 
 	// Generate high-level documentation
-	if err := g.generateHighLevelDocs(ctx, repoPath); err != nil {
+	if err := g.generateHighLevelDocs(ctx); err != nil {
 		return fmt.Errorf("failed to generate high-level documentation: %w", err)
 	}
 
@@ -63,7 +63,7 @@ func (g *Generator) GenerateDocumentation(ctx context.Context, repoURL string) e
 func (g *Generator) processFile(ctx context.Context, path string) error {
 	// Generate a unique ID for the file
 	fileID := generateID(path)
-	
+
 	// Extract metadata
 	code, err := g.collector.ReadFile(path)
 	if err != nil {
@@ -72,7 +72,7 @@ func (g *Generator) processFile(ctx context.Context, path string) error {
 
 	ext := filepath.Ext(path)
 	metadata := analysis.ExtractMetadata(string(code), ext)
-	
+
 	// Generate documentation using OpenAI
 	doc, err := g.client.AnalyzeSource(ctx, string(code), strings.TrimPrefix(ext, "."))
 	if err != nil {
@@ -119,7 +119,7 @@ func (g *Generator) processFile(ctx context.Context, path string) error {
 }
 
 // generateHighLevelDocs generates high-level documentation for the entire project
-func (g *Generator) generateHighLevelDocs(ctx context.Context, repoPath string) error {
+func (g *Generator) generateHighLevelDocs(ctx context.Context) error {
 	// Get all module documents
 	docs, err := g.store.ListDocuments(storage.TypeModule)
 	if err != nil {
