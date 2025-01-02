@@ -50,25 +50,27 @@ func main() {
 	docMap := make(map[string]string)
 
 	// Walk through the project files
-	err = filepath.Walk(*projectPath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(*projectPath, func(pathStr string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && extMap[filepath.Ext(path)] {
-			code, err := os.ReadFile(path)
+		if !info.IsDir() && extMap[filepath.Ext(pathStr)] {
+			code, err := os.ReadFile(pathStr)
 			if err != nil {
 				return err
 			}
 
-			doc, err := client.AnalyzeCode(ctx, string(code))
+			ext := filepath.Ext(pathStr)
+			language := strings.TrimPrefix(ext, ".")
+
+			doc, err := client.AnalyzeSource(ctx, string(code), language)
 			if err != nil {
 				return err
 			}
 
-			docMap[path] = doc
+			docMap[pathStr] = doc
 		}
-		log.Fatalf("Failed to generate documentation: %v", err)
-		return err
+		return nil
 	})
 
 	if err != nil {
