@@ -9,9 +9,18 @@
     <header>
       <h1>{{ .ProjectName }}</h1>
       <nav>
-        {{ range .NavItems }}
+        {{ range .NavItems }} {{ if .Children }}
+        <div class="nav-group">
+          <span class="nav-title">{{ .Title }}</span>
+          <div class="nav-children">
+            {{ range .Children }}
+            <a href="{{ .URL }}">{{ .Title }}</a>
+            {{ end }}
+          </div>
+        </div>
+        {{ else }}
         <a href="{{ .URL }}">{{ .Title }}</a>
-        {{ end }}
+        {{ end }} {{ end }}
       </nav>
     </header>
     <main>{{ .Content }}</main>
