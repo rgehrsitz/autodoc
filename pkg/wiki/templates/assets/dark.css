@@ -1,0 +1,23 @@
+.theme-dark {
+    --bg-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --link-color: #66b3ff;
+    --sidebar-bg: #2d2d2d;
+    --sidebar-text: #b3b3b3;
+    --border-color: #404040;
+    --code-bg: #333333;
+}
+
+.theme-dark .content {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark input {
+    background-color: #333333;
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+.theme-dark input::placeholder {
+    color: var(--sidebar-text);
+}
