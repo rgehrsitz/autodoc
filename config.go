@@ -1,3 +1,4 @@
+// autodoc/config.go
 package main
 
 import (
@@ -6,7 +7,7 @@ import (
 )
 
 type Config struct {
-	OpenAIAPIKey string
+	OpenAIKey string
 }
 
 func LoadConfig() (*Config, error) {
@@ -16,6 +17,6 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
-		OpenAIAPIKey: apiKey,
+		OpenAIKey: apiKey,
 	}, nil
 }

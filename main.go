@@ -1,3 +1,4 @@
+// autodoc/main.go
 package main
 
 import (
@@ -7,27 +8,53 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/YOUR_USERNAME/AutoDoc/pkg/openai"
+	"github.com/rgehrsitz/AutoDoc/pkg/docs"
+	"github.com/rgehrsitz/AutoDoc/pkg/openai"
 )
 
 func main() {
+	// Print startup message
+	fmt.Println("Starting AutoDoc...")
+
+	// Define CLI flags
 	projectPath := flag.String("path", ".", "Path to the project to document")
+	extensions := flag.String("extensions", ".js,.ts,.go,.rs,.py,.java", "Comma-separated list of file extensions to include")
 	flag.Parse()
 
+	// Load configuration
 	config, err := LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	client := openai.NewClient(config.OpenAIAPIKey)
+	// Initialize OpenAI client
+	client := openai.NewClient(config.OpenAIKey)
+	fmt.Println("OpenAI client initialized.")
+
 	ctx := context.Background()
 
+	// Parse extensions
+	extList := strings.Split(*extensions, ",")
+	extMap := make(map[string]bool)
+	for _, ext := range extList {
+		trimmedExt := strings.TrimSpace(ext)
+		if !strings.HasPrefix(trimmedExt, ".") {
+			trimmedExt = "." + trimmedExt
+		}
+		extMap[trimmedExt] = true
+	}
+
+	// Map to hold documentation for each file
+	docMap := make(map[string]string)
+
+	// Walk through the project files
 	err = filepath.Walk(*projectPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && filepath.Ext(path) == ".go" {
+		if !info.IsDir() && extMap[filepath.Ext(path)] {
 			code, err := os.ReadFile(path)
 			if err != nil {
 				return err
@@ -38,12 +65,20 @@ func main() {
 				return err
 			}
 
-			fmt.Printf("Documentation for %s:\n%s\n", path, doc)
+			docMap[path] = doc
 		}
-		return nil
+		log.Fatalf("Failed to generate documentation: %v", err)
+		return err
 	})
 
 	if err != nil {
 		log.Fatalf("Error processing files: %v", err)
 	}
+
+	// Generate documentation
+	err = docs.GenerateDocumentation(*projectPath, docMap)
+	if err != nil {
+		log.Fatalf("Failed to generate documentation: %v", err)
+	}
+
 }
