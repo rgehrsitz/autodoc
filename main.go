@@ -147,7 +147,7 @@ func main() {
 	fmt.Println("Markdown documentation generated successfully.")
 
 	// Initialize Storage using NewBadgerStorage
-	store, err := storage.NewBadgerStorage("path/to/storage") // Changed from NewStorage
+	store, err := storage.NewBadgerStorage(filepath.Join(repoPath, "storage")) // Changed from "path/to/storage"
 	if err != nil {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
@@ -183,18 +183,20 @@ func main() {
 	}
 
 	// Generate Wiki documentation
+	log.Println("Starting wiki documentation generation...")
 	wikiGen := wiki.NewGenerator(store)
 	wikiCfg := wiki.Config{
-		OutputDir:    filepath.Join(repoPath, "wiki"), // Specify desired output directory
+		OutputDir:    filepath.Join(repoPath, "wiki"), // Desired output directory
 		ProjectName:  config.ProjectName,
 		ProjectURL:   config.ProjectURL,
 		Theme:        config.Theme,
 		CustomStyles: config.CustomStyles, // Add if you have custom styles
+		// No need to specify TemplatesDir if generator.go uses the correct path
 	}
 
 	if err := wikiGen.Generate(wikiCfg); err != nil {
 		log.Fatalf("Failed to generate wiki documentation: %v", err)
 	}
 
-	fmt.Println("Wiki documentation generated successfully.")
+	log.Println("Wiki documentation generated successfully.")
 }

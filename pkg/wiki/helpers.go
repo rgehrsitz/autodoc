@@ -1,8 +1,9 @@
 package wiki
 
 import (
+	"fmt"
 	"html/template"
-	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -17,87 +18,61 @@ func renderMarkdown(content string) string {
 	md := blackfriday.Run([]byte(content),
 		blackfriday.WithExtensions(
 			blackfriday.CommonExtensions|
-			blackfriday.AutoHeadingIDs|
-			blackfriday.NoEmptyLineBeforeBlock,
+				blackfriday.AutoHeadingIDs|
+				blackfriday.NoEmptyLineBeforeBlock,
 		),
 	)
 	return string(md)
 }
 
-// renderTemplate renders a template with the given data
-func renderTemplate(path string, name string, data interface{}) error {
-	// Create output directory if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return err
-	}
+// RenderTemplate renders a template with the provided data to the specified output path.
+func RenderTemplate(outputPath, templateName string, data PageData) error {
+	// Load the template from embedded files
+	templatePath := "templates/layout.html"
+	log.Printf("Attempting to load embedded template: %s", templatePath)
 
-	// Parse templates
-	tmpl, err := template.ParseFiles(
-		"templates/layout.html",
-		"templates/"+name+".html",
-	)
+	tmpl, err := template.ParseFS(embeddedTemplates, templatePath)
 	if err != nil {
-		return err
+		log.Printf("Error parsing template %s: %v", templatePath, err)
+		return fmt.Errorf("failed to parse template %s: %w", templatePath, err)
 	}
 
-	// Create output file
-	f, err := os.Create(path)
+	// Log output path
+	log.Printf("Creating output file at: %s", outputPath)
+	file, err := os.Create(outputPath)
 	if err != nil {
-		return err
+		log.Printf("Error creating file %s: %v", outputPath, err)
+		return fmt.Errorf("failed to create file %s: %w", outputPath, err)
 	}
-	defer f.Close()
+	defer file.Close()
 
-	// Execute template
-	return tmpl.Execute(f, data)
-}
-
-// copyFile copies a file from src to dst
-func copyFile(src, dst string) error {
-	// Create destination directory if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		return err
+	// Execute the template with the provided data
+	log.Printf("Executing template for: %s", outputPath)
+	if err := tmpl.Execute(file, data); err != nil {
+		log.Printf("Error executing template for %s: %v", outputPath, err)
+		return fmt.Errorf("failed to execute template for %s: %w", outputPath, err)
 	}
 
-	// Open source file
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	// Create destination file
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Copy contents
-	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
-	}
-
-	// Sync to ensure write
-	return out.Sync()
+	log.Printf("Successfully generated: %s", outputPath)
+	return nil
 }
 
 // buildNavigation builds the navigation structure from a list of documents
 func buildNavigation(docs []*storage.Document) []NavItem {
 	// Group documents by directory
 	groups := make(map[string][]NavItem)
-	
+
 	for _, doc := range docs {
 		dir := filepath.Dir(doc.Path)
 		if dir == "." {
 			dir = ""
 		}
-		
+
 		item := NavItem{
 			Title: filepath.Base(doc.Path),
 			URL:   pathToURL(doc.Path),
 		}
-		
+
 		groups[dir] = append(groups[dir], item)
 	}
 
@@ -110,7 +85,7 @@ func buildNavigation(docs []*storage.Document) []NavItem {
 
 	// Build tree structure
 	var nav []NavItem
-	
+
 	// Add architecture as first item
 	nav = append(nav, NavItem{
 		Title: "Architecture",

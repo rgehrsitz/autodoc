@@ -1,8 +1,10 @@
 package wiki
 
 import (
+	"embed" // Added embed package
 	"fmt"
 	"html/template"
+	"log" // Ensure log is imported
 	"os"
 	"path/filepath"
 	"sort"
@@ -10,7 +12,11 @@ import (
 	"time"
 
 	"github.com/rgehrsitz/AutoDoc/pkg/storage"
+	// "github.com/rgehrsitz/AutoDoc/pkg/wiki/helpers" // Removed incorrect import
 )
+
+//go:embed templates/*.html templates/assets/*.css templates/assets/*.js
+var embeddedTemplates embed.FS
 
 // Generator handles the wiki generation process
 type Generator struct {
@@ -35,8 +41,15 @@ func NewGenerator(store storage.Storage) *Generator {
 
 // Generate generates the complete wiki
 func (g *Generator) Generate(cfg Config) error {
+	log.Println("Starting wiki generation with configuration:")
+	log.Printf("OutputDir: %s", cfg.OutputDir)
+	log.Printf("ProjectName: %s", cfg.ProjectName)
+	log.Printf("ProjectURL: %s", cfg.ProjectURL)
+	log.Printf("Theme: %s", cfg.Theme)
+
 	// Create output directory
 	if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
+		log.Printf("Error creating output directory: %v", err)
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -60,7 +73,7 @@ func (g *Generator) Generate(cfg Config) error {
 		return fmt.Errorf("failed to generate search page: %w", err)
 	}
 
-	// Copy static assets
+	// Copy static assets from embedded files
 	if err := g.copyAssets(cfg); err != nil {
 		return fmt.Errorf("failed to copy assets: %w", err)
 	}
@@ -123,7 +136,7 @@ func (g *Generator) generateIndex(cfg Config) error {
 		Theme:       cfg.Theme,
 	}
 
-	return renderTemplate(filepath.Join(cfg.OutputDir, "index.html"), "index", data)
+	return RenderTemplate(filepath.Join(cfg.OutputDir, "index.html"), "index", data) // Updated call
 }
 
 func (g *Generator) generateArchitecture(cfg Config) error {
@@ -153,7 +166,7 @@ func (g *Generator) generateArchitecture(cfg Config) error {
 		Theme:       cfg.Theme,
 	}
 
-	return renderTemplate(filepath.Join(cfg.OutputDir, "architecture.html"), "page", data)
+	return RenderTemplate(filepath.Join(cfg.OutputDir, "architecture.html"), "page", data) // Updated call
 }
 
 func (g *Generator) generateModules(cfg Config) error {
@@ -180,7 +193,7 @@ func (g *Generator) generateModules(cfg Config) error {
 		// Build content with references
 		content := strings.Builder{}
 		content.WriteString(doc.Content)
-		
+
 		if len(refs) > 0 {
 			content.WriteString("\n\n## Dependencies\n\n")
 			for _, ref := range refs {
@@ -218,7 +231,7 @@ func (g *Generator) generateModules(cfg Config) error {
 			return fmt.Errorf("failed to create directory: %w", err)
 		}
 
-		if err := renderTemplate(outPath, "page", data); err != nil {
+		if err := RenderTemplate(outPath, "page", data); err != nil { // Updated call
 			return fmt.Errorf("failed to render page: %w", err)
 		}
 	}
@@ -242,7 +255,7 @@ func (g *Generator) generateSearch(cfg Config) error {
 		Theme:       cfg.Theme,
 	}
 
-	return renderTemplate(filepath.Join(cfg.OutputDir, "search.html"), "search", data)
+	return RenderTemplate(filepath.Join(cfg.OutputDir, "search.html"), "search", data) // Updated call
 }
 
 func (g *Generator) copyAssets(cfg Config) error {
@@ -251,14 +264,30 @@ func (g *Generator) copyAssets(cfg Config) error {
 		return fmt.Errorf("failed to create assets directory: %w", err)
 	}
 
-	// Copy CSS files
-	if err := copyFile("templates/assets/style.css", filepath.Join(assetsDir, "style.css")); err != nil {
-		return fmt.Errorf("failed to copy style.css: %w", err)
+	// List of assets to copy from embedded files
+	assetFiles := []string{
+		"templates/assets/style.css",
+		"templates/assets/search.js",
 	}
 
-	// Copy JavaScript files
-	if err := copyFile("templates/assets/search.js", filepath.Join(assetsDir, "search.js")); err != nil {
-		return fmt.Errorf("failed to copy search.js: %w", err)
+	for _, asset := range assetFiles {
+		// Read asset from embedded files
+		data, err := embeddedTemplates.ReadFile(asset)
+		if err != nil {
+			log.Printf("Failed to read embedded asset %s: %v", asset, err)
+			return fmt.Errorf("failed to read embedded asset %s: %w", asset, err)
+		}
+
+		// Determine the destination path
+		destPath := filepath.Join(assetsDir, filepath.Base(asset))
+
+		// Write the asset to the destination
+		if err := os.WriteFile(destPath, data, 0644); err != nil {
+			log.Printf("Failed to write asset to %s: %v", destPath, err)
+			return fmt.Errorf("failed to write asset to %s: %w", destPath, err)
+		}
+
+		log.Printf("Successfully copied asset to: %s", destPath)
 	}
 
 	return nil
