@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/rgehrsitz/AutoDoc/pkg/analysis"
 	"github.com/rgehrsitz/AutoDoc/pkg/docs"
 	"github.com/rgehrsitz/AutoDoc/pkg/openai"
 )
@@ -49,16 +50,29 @@ func main() {
 	// Map to hold documentation for each file
 	docMap := make(map[string]string)
 
+	// Initialize reference map
+	references := make(map[string][]string)
+
 	// Walk through the project files
 	err = filepath.Walk(*projectPath, func(pathStr string, info os.FileInfo, err error) error {
 		if err != nil {
+			log.Printf("Error accessing path %s: %v", pathStr, err)
 			return err
 		}
 		if !info.IsDir() && extMap[filepath.Ext(pathStr)] {
+			fmt.Println("Analyzing file:", pathStr)
 			code, err := os.ReadFile(pathStr)
 			if err != nil {
+				log.Printf("Failed to read file %s: %v", pathStr, err)
 				return err
 			}
+
+			// Analyze references
+			fileRefs := analysis.ExtractReferences(string(code), filepath.Ext(pathStr))
+			references[pathStr] = fileRefs
+
+			chunks := client.Chunker.Split(string(code))
+			fmt.Printf("File %s split into %d chunks\n", pathStr, len(chunks))
 
 			ext := filepath.Ext(pathStr)
 			language := strings.TrimPrefix(ext, ".")
@@ -69,6 +83,8 @@ func main() {
 			}
 
 			docMap[pathStr] = doc
+
+			fmt.Println("Documentation generated for:", pathStr)
 		}
 		return nil
 	})
@@ -78,7 +94,7 @@ func main() {
 	}
 
 	// Generate documentation
-	err = docs.GenerateDocumentation(*projectPath, docMap)
+	err = docs.GenerateDocumentation(*projectPath, docMap, references)
 	if err != nil {
 		log.Fatalf("Failed to generate documentation: %v", err)
 	}
