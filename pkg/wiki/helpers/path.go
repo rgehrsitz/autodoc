@@ -7,11 +7,21 @@ import (
 
 // PathToURL converts a file path to a URL-friendly path
 func PathToURL(path string) string {
-	// Convert path separators to forward slashes
+	// Convert path separators
 	path = filepath.ToSlash(path)
-	// Remove any drive letter prefix (e.g., C:)
-	path = strings.TrimPrefix(strings.TrimPrefix(path, filepath.VolumeName(path)), "/")
-	// Add .html extension
+
+	// Remove volume name (e.g. "C:")
+	vol := filepath.VolumeName(path)
+	if vol != "" {
+		path = strings.TrimPrefix(path, vol)
+		// Remove any leftover leading slash
+		path = strings.TrimLeft(path, "/")
+	}
+
+	// Strip any leading slashes
+	path = strings.TrimLeft(path, "/")
+
+	// Append .html
 	return path + ".html"
 }
 

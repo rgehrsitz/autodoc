@@ -5,11 +5,7 @@ import (
 	"html/template"
 	"log"
 	"os"
-	"path/filepath"
-	"sort"
-	"strings"
 
-	"github.com/rgehrsitz/AutoDoc/pkg/storage"
 	"github.com/russross/blackfriday/v2"
 )
 
@@ -63,71 +59,4 @@ func RenderTemplate(outputPath, templateName string, data PageData) error {
 
 	log.Printf("Successfully generated: %s", outputPath)
 	return nil
-}
-
-// buildNavigation builds the navigation structure from a list of documents
-func buildNavigation(docs []*storage.Document) []NavItem {
-	// Group documents by directory
-	groups := make(map[string][]NavItem)
-
-	for _, doc := range docs {
-		dir := filepath.Dir(doc.Path)
-		if dir == "." {
-			dir = ""
-		}
-
-		item := NavItem{
-			Title: filepath.Base(doc.Path),
-			URL:   pathToURL(doc.Path),
-		}
-
-		groups[dir] = append(groups[dir], item)
-	}
-
-	// Sort each group
-	for _, items := range groups {
-		sort.Slice(items, func(i, j int) bool {
-			return items[i].Title < items[j].Title
-		})
-	}
-
-	// Build tree structure
-	var nav []NavItem
-
-	// Add architecture as first item
-	nav = append(nav, NavItem{
-		Title: "Architecture",
-		URL:   "architecture.html",
-	})
-
-	// Add modules
-	var dirs []string
-	for dir := range groups {
-		if dir != "" {
-			dirs = append(dirs, dir)
-		}
-	}
-	sort.Strings(dirs)
-
-	// Add root files first
-	if items, ok := groups[""]; ok {
-		nav = append(nav, items...)
-	}
-
-	// Add directories
-	for _, dir := range dirs {
-		item := NavItem{
-			Title:    filepath.Base(dir),
-			Children: groups[dir],
-		}
-		nav = append(nav, item)
-	}
-
-	return nav
-}
-
-// pathToURL converts a file path to a URL-friendly format
-func pathToURL(path string) string {
-	url := strings.ReplaceAll(path, string(filepath.Separator), "/")
-	return url + ".html"
 }
