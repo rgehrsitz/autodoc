@@ -170,6 +170,9 @@ func (g *Generator) generateModules(cfg Config) error {
 	nav := helpers.BuildNavigation(modules)
 
 	for _, doc := range modules {
+		// Keep original file extension in the output path
+		outPath := filepath.Join(cfg.OutputDir, doc.Path+".html")
+
 		// Get references
 		refs, err := g.store.GetReferences(doc.ID)
 		if err != nil {
@@ -193,7 +196,8 @@ func (g *Generator) generateModules(cfg Config) error {
 				if err != nil {
 					continue
 				}
-				content.WriteString(fmt.Sprintf("- [%s](%s)\n", target.Path, helpers.PathToURL(target.Path))) // Use helpers.PathToURL
+				relativeURL := helpers.GetRelativeURL(doc.Path, target.Path+".html")
+				content.WriteString(fmt.Sprintf("- [%s](%s)\n", target.Path, relativeURL))
 			}
 		}
 
@@ -204,10 +208,12 @@ func (g *Generator) generateModules(cfg Config) error {
 				if err != nil {
 					continue
 				}
-				content.WriteString(fmt.Sprintf("- [%s](%s)\n", source.Path, helpers.PathToURL(source.Path))) // Use helpers.PathToURL
+				relativeURL := helpers.GetRelativeURL(doc.Path, source.Path+".html")
+				content.WriteString(fmt.Sprintf("- [%s](%s)\n", source.Path, relativeURL))
 			}
 		}
 
+		// Create the page data
 		data := PageData{
 			Title:       doc.Path,
 			ProjectName: cfg.ProjectName,
@@ -217,11 +223,6 @@ func (g *Generator) generateModules(cfg Config) error {
 			LastUpdated: doc.UpdatedAt,
 			Theme:       cfg.Theme,
 		}
-
-		// Create sanitized output path using helpers
-		relPath := helpers.SanitizePath(doc.Path)
-		outPath := filepath.Join(cfg.OutputDir, relPath)
-		outPath = outPath + ".html"
 
 		// Ensure the directory exists
 		outDir := filepath.Dir(outPath)

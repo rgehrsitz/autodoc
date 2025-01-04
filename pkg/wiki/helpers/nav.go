@@ -23,10 +23,6 @@ func BuildNavigation(modules []*storage.Document) []NavItem {
 			URL:   "index.html",
 		},
 		{
-			Title: "Architecture",
-			URL:   "architecture.html",
-		},
-		{
 			Title: "Search",
 			URL:   "search.html",
 		},
@@ -69,7 +65,7 @@ func BuildNavigation(modules []*storage.Document) []NavItem {
 		var currentNav *NavItem
 
 		// Create or update the navigation hierarchy
-		for _, part := range parts[:len(parts)-1] {
+		for i, part := range parts[:len(parts)-1] {
 			if currentPath == "" {
 				currentPath = part
 			} else {
@@ -79,10 +75,13 @@ func BuildNavigation(modules []*storage.Document) []NavItem {
 			if existing, exists := moduleNav[currentPath]; exists {
 				currentNav = existing
 			} else {
+				// Create new nav item for directory
 				newNav := &NavItem{
-					Title: part,
-					URL:   "#",
+					Title:    part,
+					URL:      "",          // Will be updated if index file is found
+					Children: []NavItem{}, // Initialize empty children slice
 				}
+
 				if currentNav == nil {
 					nav = append(nav, *newNav)
 					moduleNav[currentPath] = &nav[len(nav)-1]
@@ -94,14 +93,19 @@ func BuildNavigation(modules []*storage.Document) []NavItem {
 			}
 		}
 
-		// Add the leaf node (file)
+		// Add the file as a child of the current navigation item
+		fileName := parts[len(parts)-1]
 		fileNav := NavItem{
-			Title: parts[len(parts)-1],
-			URL:   url,
+			Title: fileName,
+			URL:   PathToURL(doc.Path), // Use the full path for the URL
 		}
 
 		if currentNav != nil {
+			// Sort children alphabetically when adding new item
 			currentNav.Children = append(currentNav.Children, fileNav)
+			sort.Slice(currentNav.Children, func(i, j int) bool {
+				return currentNav.Children[i].Title < currentNav.Children[j].Title
+			})
 		} else {
 			nav = append(nav, fileNav)
 		}

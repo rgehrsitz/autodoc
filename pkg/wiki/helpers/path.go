@@ -5,43 +5,42 @@ import (
 	"strings"
 )
 
-// PathToURL converts a file path to a URL-friendly path
+// PathToURL converts a file path to a URL-friendly path from wiki root
 func PathToURL(path string) string {
-	// Convert path separators to forward slashes
+	// Normalize the path separators
 	path = filepath.ToSlash(path)
-
-	// Remove volume name (e.g. "C:")
+	// Remove volume name and any leading slashes
 	path = strings.TrimPrefix(path, filepath.VolumeName(path))
-
-	// Strip any leading slashes
 	path = strings.TrimPrefix(path, "/")
-
-	// Create relative path from root
-	return "code/" + path + ".html"
+	// Replace file extension with .html
+	if ext := filepath.Ext(path); ext != "" {
+		path = strings.TrimSuffix(path, ext)
+	}
+	return path + ".html"
 }
 
 // SanitizePath creates a safe file path from the input path
 func SanitizePath(path string) string {
-	// Remove volume name and normalize separators
-	path = strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(filepath.VolumeName(path)))
-	// Remove leading/trailing separators
-	return strings.Trim(path, "/")
+	// Normalize path separators
+	path = filepath.ToSlash(path)
+	// Remove volume name and any leading/trailing slashes
+	path = strings.TrimPrefix(path, filepath.VolumeName(path))
+	path = strings.Trim(path, "/")
+	return path
 }
 
-// GetRelativePath returns a path relative to the documentation root
-func GetRelativePath(path, basePath string) string {
-	// Convert both paths to forward slashes
-	path = filepath.ToSlash(path)
-	basePath = filepath.ToSlash(basePath)
+// GetRelativeURL returns a relative URL from one page to another
+func GetRelativeURL(fromPath, toPath string) string {
+	from := filepath.Dir(SanitizePath(fromPath))
+	to := SanitizePath(toPath)
 
-	// Remove volume names
-	path = strings.TrimPrefix(path, filepath.VolumeName(path))
-	basePath = strings.TrimPrefix(basePath, filepath.VolumeName(basePath))
-
-	// Calculate relative path
-	rel, err := filepath.Rel(basePath, path)
-	if err != nil {
-		return path
+	if from == "." {
+		return PathToURL(to)
 	}
-	return filepath.ToSlash(rel)
+
+	// Calculate the number of directory levels to go up
+	levels := len(strings.Split(from, "/"))
+	prefix := strings.Repeat("../", levels)
+
+	return prefix + PathToURL(to)
 }
