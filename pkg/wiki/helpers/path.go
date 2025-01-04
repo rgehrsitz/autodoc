@@ -7,27 +7,41 @@ import (
 
 // PathToURL converts a file path to a URL-friendly path
 func PathToURL(path string) string {
-	// Convert path separators
+	// Convert path separators to forward slashes
 	path = filepath.ToSlash(path)
 
 	// Remove volume name (e.g. "C:")
-	vol := filepath.VolumeName(path)
-	if vol != "" {
-		path = strings.TrimPrefix(path, vol)
-		// Remove any leftover leading slash
-		path = strings.TrimLeft(path, "/")
-	}
+	path = strings.TrimPrefix(path, filepath.VolumeName(path))
 
 	// Strip any leading slashes
-	path = strings.TrimLeft(path, "/")
+	path = strings.TrimPrefix(path, "/")
 
-	// Append .html
-	return path + ".html"
+	// Create relative path from root
+	return "code/" + path + ".html"
 }
 
 // SanitizePath creates a safe file path from the input path
 func SanitizePath(path string) string {
-	// Remove volume name (drive letter)
-	path = strings.TrimPrefix(strings.TrimPrefix(path, filepath.VolumeName(path)), string(filepath.Separator))
-	return filepath.FromSlash(path)
+	// Remove volume name and normalize separators
+	path = strings.TrimPrefix(filepath.ToSlash(path), filepath.ToSlash(filepath.VolumeName(path)))
+	// Remove leading/trailing separators
+	return strings.Trim(path, "/")
+}
+
+// GetRelativePath returns a path relative to the documentation root
+func GetRelativePath(path, basePath string) string {
+	// Convert both paths to forward slashes
+	path = filepath.ToSlash(path)
+	basePath = filepath.ToSlash(basePath)
+
+	// Remove volume names
+	path = strings.TrimPrefix(path, filepath.VolumeName(path))
+	basePath = strings.TrimPrefix(basePath, filepath.VolumeName(basePath))
+
+	// Calculate relative path
+	rel, err := filepath.Rel(basePath, path)
+	if err != nil {
+		return path
+	}
+	return filepath.ToSlash(rel)
 }
