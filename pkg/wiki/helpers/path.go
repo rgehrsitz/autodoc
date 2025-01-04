@@ -9,24 +9,41 @@ import (
 func PathToURL(path string) string {
 	// Normalize the path separators
 	path = filepath.ToSlash(path)
-	// Remove volume name and any leading slashes
+	// Remove volume name, leading slashes, and clean the path
 	path = strings.TrimPrefix(path, filepath.VolumeName(path))
 	path = strings.TrimPrefix(path, "/")
-	// Replace file extension with .html
-	if ext := filepath.Ext(path); ext != "" {
-		path = strings.TrimSuffix(path, ext)
+	// For index file detection
+	base := filepath.Base(path)
+	dir := filepath.Dir(path)
+	if base == "index.html" {
+		return dir
 	}
+	// Keep original extension and add .html
 	return path + ".html"
 }
 
 // SanitizePath creates a safe file path from the input path
 func SanitizePath(path string) string {
-	// Normalize path separators
-	path = filepath.ToSlash(path)
-	// Remove volume name and any leading/trailing slashes
+	// Remove volume name if present
 	path = strings.TrimPrefix(path, filepath.VolumeName(path))
-	path = strings.Trim(path, "/")
-	return path
+
+	// Convert to forward slashes
+	path = filepath.ToSlash(path)
+
+	// Remove leading separator
+	path = strings.TrimPrefix(path, "/")
+
+	// Remove any "." or ".." components
+	parts := strings.Split(path, "/")
+	var cleaned []string
+	for _, part := range parts {
+		if part == "." || part == ".." {
+			continue
+		}
+		cleaned = append(cleaned, part)
+	}
+
+	return strings.Join(cleaned, "/")
 }
 
 // GetRelativeURL returns a relative URL from one page to another

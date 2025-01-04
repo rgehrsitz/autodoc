@@ -48,13 +48,15 @@ func BuildNavigation(modules []*storage.Document) []NavItem {
 			continue
 		}
 
-		// Create the URL for this document
+		// Keep the original filename for display
+		fileName := parts[len(parts)-1]
+		dirPath := strings.Join(parts[:len(parts)-1], "/")
 		url := PathToURL(doc.Path)
 
 		// Handle root level files
 		if len(parts) == 1 {
 			nav = append(nav, NavItem{
-				Title: parts[0],
+				Title: fileName, // Keep original filename
 				URL:   url,
 			})
 			continue
@@ -64,7 +66,7 @@ func BuildNavigation(modules []*storage.Document) []NavItem {
 		currentPath := ""
 		var currentNav *NavItem
 
-		// Create or update the navigation hierarchy
+		// Create directory structure
 		for i, part := range parts[:len(parts)-1] {
 			if currentPath == "" {
 				currentPath = part
@@ -75,11 +77,20 @@ func BuildNavigation(modules []*storage.Document) []NavItem {
 			if existing, exists := moduleNav[currentPath]; exists {
 				currentNav = existing
 			} else {
-				// Create new nav item for directory
+				// Find first file in directory for the URL
+				firstFileURL := ""
+				currentDir := strings.Join(parts[:i+1], "/") + "/"
+				for _, m := range modules {
+					if strings.HasPrefix(SanitizePath(m.Path), currentDir) {
+						firstFileURL = PathToURL(m.Path)
+						break
+					}
+				}
+
 				newNav := &NavItem{
 					Title:    part,
-					URL:      "",          // Will be updated if index file is found
-					Children: []NavItem{}, // Initialize empty children slice
+					URL:      firstFileURL,
+					Children: []NavItem{},
 				}
 
 				if currentNav == nil {
@@ -93,21 +104,18 @@ func BuildNavigation(modules []*storage.Document) []NavItem {
 			}
 		}
 
-		// Add the file as a child of the current navigation item
-		fileName := parts[len(parts)-1]
+		// Add file to current directory
 		fileNav := NavItem{
-			Title: fileName,
-			URL:   PathToURL(doc.Path), // Use the full path for the URL
+			Title: fileName, // Keep original filename with extension
+			URL:   url,      // Use full path with .html extension
 		}
 
 		if currentNav != nil {
-			// Sort children alphabetically when adding new item
 			currentNav.Children = append(currentNav.Children, fileNav)
+			// Sort children by title
 			sort.Slice(currentNav.Children, func(i, j int) bool {
 				return currentNav.Children[i].Title < currentNav.Children[j].Title
 			})
-		} else {
-			nav = append(nav, fileNav)
 		}
 	}
 

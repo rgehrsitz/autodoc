@@ -170,8 +170,10 @@ func (g *Generator) generateModules(cfg Config) error {
 	nav := helpers.BuildNavigation(modules)
 
 	for _, doc := range modules {
-		// Keep original file extension in the output path
-		outPath := filepath.Join(cfg.OutputDir, doc.Path+".html")
+		// Create relative path by removing volume name and normalizing separators
+		cleanPath := helpers.SanitizePath(doc.Path)
+		// Create output path relative to the wiki directory
+		outPath := filepath.Join(cfg.OutputDir, cleanPath+".html")
 
 		// Get references
 		refs, err := g.store.GetReferences(doc.ID)
@@ -196,7 +198,7 @@ func (g *Generator) generateModules(cfg Config) error {
 				if err != nil {
 					continue
 				}
-				relativeURL := helpers.GetRelativeURL(doc.Path, target.Path+".html")
+				relativeURL := helpers.GetRelativeURL(cleanPath, helpers.SanitizePath(target.Path)+".html")
 				content.WriteString(fmt.Sprintf("- [%s](%s)\n", target.Path, relativeURL))
 			}
 		}
@@ -208,14 +210,14 @@ func (g *Generator) generateModules(cfg Config) error {
 				if err != nil {
 					continue
 				}
-				relativeURL := helpers.GetRelativeURL(doc.Path, source.Path+".html")
+				relativeURL := helpers.GetRelativeURL(cleanPath, helpers.SanitizePath(source.Path)+".html")
 				content.WriteString(fmt.Sprintf("- [%s](%s)\n", source.Path, relativeURL))
 			}
 		}
 
 		// Create the page data
 		data := PageData{
-			Title:       doc.Path,
+			Title:       cleanPath,
 			ProjectName: cfg.ProjectName,
 			ProjectURL:  cfg.ProjectURL,
 			NavItems:    nav,
