@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -41,13 +43,18 @@ func (g *Generator) GenerateDocumentation(ctx context.Context, repoURL string) e
 	// List all files
 	files, err := g.collector.ListFiles(ctx, repoPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("Warning: Directory %s does not exist, skipping", repoPath)
+			return nil
+		}
 		return fmt.Errorf("failed to list files: %w", err)
 	}
 
 	// Process each file
 	for _, file := range files {
 		if err := g.processFile(ctx, file); err != nil {
-			return fmt.Errorf("failed to process file %s: %w", file, err)
+			log.Printf("Warning: Error processing file %s: %v", file, err)
+			continue // Continue with other files instead of stopping
 		}
 	}
 

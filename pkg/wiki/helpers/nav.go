@@ -50,7 +50,6 @@ func BuildNavigation(modules []*storage.Document) []NavItem {
 
 		// Keep the original filename for display
 		fileName := parts[len(parts)-1]
-		dirPath := strings.Join(parts[:len(parts)-1], "/")
 		url := PathToURL(doc.Path)
 
 		// Handle root level files

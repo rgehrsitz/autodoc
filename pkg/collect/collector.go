@@ -48,6 +48,12 @@ func (c *YourCollectorStruct) ListFiles(ctx context.Context, path string) ([]str
 	var files []string
 	err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
+			if os.IsNotExist(err) {
+				return nil // Skip non-existent paths
+			}
+			if os.IsPermission(err) {
+				return nil // Skip inaccessible paths
+			}
 			return err
 		}
 		if !info.IsDir() {
@@ -56,6 +62,9 @@ func (c *YourCollectorStruct) ListFiles(ctx context.Context, path string) ([]str
 		return nil
 	})
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil // Return empty list for non-existent paths
+		}
 		return nil, err
 	}
 	return files, nil
