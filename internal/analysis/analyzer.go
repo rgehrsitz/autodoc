@@ -1,6 +1,6 @@
-// autodoc/pkg/analysis/analysis.go
+// autodoc/internal/analysis/analyzer.go
 
-package analysis
+package analyzer
 
 import (
 	"regexp"
