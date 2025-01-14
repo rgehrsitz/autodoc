@@ -1,4 +1,5 @@
 // autodoc/pkg/collect/collector.go
+
 package collect
 
 import (

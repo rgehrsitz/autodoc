@@ -1,3 +1,5 @@
+// autodoc/pkg/analysis/analysis.go
+
 package analysis
 
 import (

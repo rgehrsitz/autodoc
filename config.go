@@ -1,4 +1,5 @@
 // autodoc/config.go
+
 package main
 
 import (

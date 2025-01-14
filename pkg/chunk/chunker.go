@@ -1,4 +1,5 @@
 // autodoc/pkg/chunk/chunker.go
+
 package chunk
 
 import "strings"

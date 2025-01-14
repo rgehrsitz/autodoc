@@ -1,3 +1,5 @@
+// autodoc/pkg/openai/ratelimit.go
+
 package openai
 
 import (

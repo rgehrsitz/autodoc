@@ -1,3 +1,5 @@
+// autodoc/pkg/wiki/helpers/nav.go
+
 package helpers
 
 import (

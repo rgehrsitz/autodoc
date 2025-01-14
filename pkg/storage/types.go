@@ -1,3 +1,5 @@
+// autodoc/pkg/storage/types.go
+
 package storage
 
 import (

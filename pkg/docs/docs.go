@@ -1,4 +1,5 @@
 // autodoc/pkg/docs/docs.go
+
 package docs
 
 import (

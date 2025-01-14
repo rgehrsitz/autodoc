@@ -1,3 +1,5 @@
+// auttodoc/pkg/wiki/generator.go
+
 package wiki
 
 import (

@@ -1,3 +1,5 @@
+// autodoc/pkg/generator/generator.go
+
 package generator
 
 import (

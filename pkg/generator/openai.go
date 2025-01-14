@@ -1,3 +1,5 @@
+// autodoc/pkg/generator/openai.go
+
 package generator
 
 import "context"

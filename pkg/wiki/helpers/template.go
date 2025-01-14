@@ -1,3 +1,5 @@
+// autodoc/pkg/wiki/helpers/template.go
+
 package helpers
 
 import (

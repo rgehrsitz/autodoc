@@ -1,3 +1,5 @@
+// autodoc/pkg/wiki/generator_test.go
+
 package wiki
 
 import (

@@ -1,3 +1,5 @@
+// autodoc/pkg/storage/badger.go
+
 package storage
 
 import (

@@ -1,3 +1,5 @@
+// autodoc/pkg/wiki/helpers.go
+
 package wiki
 
 import (

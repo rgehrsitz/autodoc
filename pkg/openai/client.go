@@ -1,4 +1,5 @@
 // autodoc/pkg/openai/client.go
+
 package openai
 
 import (
