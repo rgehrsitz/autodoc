@@ -1,4 +1,4 @@
-// autodoc/pkg/wiki/helpers/nav.go
+// autodoc/web/handlers/helpers/nav.go
 
 package helpers
 
@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/rgehrsitz/AutoDoc/pkg/storage"
+	"github.com/rgehrsitz/AutoDoc/internal/storage"
 )
 
 // NavItem represents a navigation menu item

@@ -1,17 +1,16 @@
-// autodoc/pkg/wiki/generator_test.go
+// autodoc/web/handlers/generator_test.go
 
-package wiki
+package handlers
 
 import (
 	"errors"
-	"log" // Add log import for capturing logs during tests
+	"log"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/rgehrsitz/AutoDoc/pkg/storage"
-	// "github.com/rgehrsitz/AutoDoc/pkg/wiki/helpers" // Removed incorrect import
+	"github.com/rgehrsitz/AutoDoc/internal/storage"
 )
 
 var ErrNotFound = errors.New("not found")

@@ -1,6 +1,6 @@
-// auttodoc/pkg/wiki/generator.go
+// autodoc/web/handlers/generator.go
 
-package wiki
+package handlers
 
 import (
 	"embed"
@@ -13,11 +13,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rgehrsitz/AutoDoc/pkg/storage"
-	"github.com/rgehrsitz/AutoDoc/pkg/wiki/helpers"
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
+	"github.com/rgehrsitz/AutoDoc/internal/storage"
+	"github.com/rgehrsitz/AutoDoc/web/handlers/helpers"
 )
 
-//go:embed templates/*.html templates/assets/*.css templates/assets/*.js
+//go:embed templates/*.html assets/css/*.css assets/js/*.js
 var embeddedTemplates embed.FS
 
 // Generator handles the wiki generation process
@@ -30,8 +33,8 @@ type Config struct {
 	OutputDir    string            // Directory where wiki files will be generated
 	ProjectName  string            // Name of the project
 	ProjectURL   string            // URL of the project repository
-	Theme        string            // Theme name (default, dark, light)
-	CustomStyles map[string]string // Custom CSS styles
+	Theme        string            // Theme name (e.g., "light" or "dark")
+	CustomStyles map[string]string // Custom CSS styles to apply
 }
 
 // NewGenerator creates a new wiki generator
@@ -262,6 +265,7 @@ func (g *Generator) generateSearch(cfg Config) error {
 }
 
 func (g *Generator) copyAssets(cfg Config) error {
+	// Create assets directory
 	assetsDir := filepath.Join(cfg.OutputDir, "assets")
 	if err := os.MkdirAll(assetsDir, 0755); err != nil {
 		return fmt.Errorf("failed to create assets directory: %w", err)
@@ -269,8 +273,8 @@ func (g *Generator) copyAssets(cfg Config) error {
 
 	// List of assets to copy from embedded files
 	assetFiles := []string{
-		"templates/assets/style.css",
-		"templates/assets/search.js",
+		"assets/css/style.css",
+		"assets/js/search.js",
 	}
 
 	for _, asset := range assetFiles {
@@ -294,4 +298,24 @@ func (g *Generator) copyAssets(cfg Config) error {
 	}
 
 	return nil
+}
+
+// renderMarkdown converts markdown text to HTML
+func renderMarkdown(input string) template.HTML {
+	// Create markdown parser with extensions
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
+	p := parser.NewWithExtensions(extensions)
+
+	// Parse markdown
+	doc := p.Parse([]byte(input))
+
+	// Create HTML renderer
+	opts := html.RendererOptions{
+		Flags: html.CommonFlags | html.HrefTargetBlank,
+	}
+	renderer := html.NewRenderer(opts)
+
+	// Render HTML
+	html := markdown.Render(doc, renderer)
+	return template.HTML(html)
 }

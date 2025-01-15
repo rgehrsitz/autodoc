@@ -1,4 +1,4 @@
-// autodoc/pkg/wiki/helpers/path.go
+// autodoc/web/handlers/helpers/path.go
 
 package helpers
 

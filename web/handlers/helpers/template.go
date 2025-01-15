@@ -1,4 +1,4 @@
-// autodoc/pkg/wiki/helpers/template.go
+// autodoc/web/handlers/helpers/template.go
 
 package helpers
 

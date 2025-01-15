@@ -1,4 +1,4 @@
-// autodoc/pkg/storage/badger_test.go
+// autodoc/internal/storage/badger_test.go
 
 package storage
 

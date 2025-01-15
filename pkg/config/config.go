@@ -1,4 +1,4 @@
-// autodoc/config/config.go
+// autodoc/pkg/config/config.go
 
 package config
 

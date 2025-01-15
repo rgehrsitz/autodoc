@@ -1,6 +1,6 @@
-// autodoc/pkg/chunk/chunker.go
+// autodoc/internal/analysis/chunker.go
 
-package chunk
+package analyzer
 
 import "strings"
 

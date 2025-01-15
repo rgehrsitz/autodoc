@@ -1,4 +1,4 @@
-// autodoc/pkg/generator/generator_test.go
+// autodoc/internal/generator/generator_test.go
 
 package generator
 
@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/rgehrsitz/AutoDoc/pkg/storage"
+	"github.com/rgehrsitz/AutoDoc/internal/storage"
 )
 
 // MockCollector implements the collect.Collector interface for testing

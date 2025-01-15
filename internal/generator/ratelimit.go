@@ -1,6 +1,6 @@
-// autodoc/pkg/openai/ratelimit.go
+// autodoc/internal/generator/ratelimit.go
 
-package openai
+package generator
 
 import (
 	"context"

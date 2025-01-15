@@ -4,8 +4,8 @@ go 1.23.4
 
 require (
 	github.com/dgraph-io/badger/v4 v4.5.0
+	github.com/gomarkdown/markdown v0.0.0-20241205020045-f7e15b2f3e62
 	github.com/openai/openai-go v0.1.0-alpha.41
-	github.com/russross/blackfriday/v2 v2.1.0
 )
 
 require (

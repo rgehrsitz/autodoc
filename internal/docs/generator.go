@@ -1,4 +1,4 @@
-// autodoc/pkg/docs/docs.go
+// autodoc/internal/docs/generator.go
 
 package docs
 

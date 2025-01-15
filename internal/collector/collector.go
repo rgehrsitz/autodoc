@@ -1,6 +1,6 @@
-// autodoc/pkg/collect/collector.go
+// autodoc/internal/collector/collector.go
 
-package collect
+package collector
 
 import (
 	"context"
