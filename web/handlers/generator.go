@@ -20,7 +20,7 @@ import (
 	"github.com/rgehrsitz/AutoDoc/web/handlers/helpers"
 )
 
-//go:embed templates/*.html assets/css/*.css assets/js/*.js
+//go:embed templates/layouts/*.html templates/components/*.html templates/partials/*.html assets/css/*.css assets/js/*.js
 var embeddedTemplates embed.FS
 
 // Generator handles the wiki generation process

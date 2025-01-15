@@ -1,4 +1,4 @@
-//autodoc/internal/templates/templates.go
+//autodoc/web/handlers/templates/templates.go
 
 package templates
 
@@ -25,10 +25,11 @@ type TemplateData struct {
 	Version     string
 	LastUpdated time.Time
 	Components  []ComponentData
-	Analysis    *analyzer.EnhancedAnalysis
+	Analysis    *analyzer.CodeAnalysisSchema
 	Navigation  []NavigationItem
 	CurrentPath string
 	Theme       string
+	Content     string
 }
 
 // ComponentData represents a single component in the documentation
@@ -38,7 +39,7 @@ type ComponentData struct {
 	Type        string
 	Description string
 	Content     string
-	Analysis    *analyzer.EnhancedAnalysis
+	Analysis    *analyzer.CodeAnalysisSchema
 	References  []ReferenceData
 }
 
