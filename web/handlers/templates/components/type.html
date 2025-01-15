@@ -1,0 +1,90 @@
+<!-- components/type.html -->
+<div class="space-y-6">
+  <!-- Type Header -->
+  <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
+    <h1 class="text-3xl font-bold dark:text-white">{{ .Name }}</h1>
+    <div
+      class="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400"
+    >
+      <span class="mr-4">Type: {{ .Kind }}</span>
+      {{ if .Implements }}
+      <span
+        >Implements: {{ range $i, $v := .Implements }}{{ if $i }}, {{ end }}{{ .
+        }}{{ end }}</span
+      >
+      {{ end }}
+    </div>
+  </div>
+
+  <!-- Type Description -->
+  <div class="prose dark:prose-dark max-w-none">
+    {{ .Description | markdownToHTML }}
+  </div>
+
+  <!-- Fields/Methods -->
+  {{ if or .Fields .Methods }}
+  <div class="grid gap-6">
+    <!-- Fields -->
+    {{ if .Fields }}
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+      <h2 class="text-lg font-semibold mb-3 dark:text-gray-200">Fields</h2>
+      <div class="grid gap-3">
+        {{ range .Fields }}
+        <div
+          class="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-3 last:pb-0"
+        >
+          <div class="flex items-center justify-between">
+            <div class="font-mono text-sm">
+              <span class="text-purple-600 dark:text-purple-400"
+                >{{ .Name }}</span
+              >
+              <span class="text-gray-600 dark:text-gray-400">{{ .Type }}</span>
+            </div>
+            {{ if .Tags }}
+            <div class="flex gap-2">
+              {{ range .Tags }}
+              <span
+                class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded"
+                >{{ . }}</span
+              >
+              {{ end }}
+            </div>
+            {{ end }}
+          </div>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            {{ .Description }}
+          </p>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+    {{ end }}
+
+    <!-- Methods -->
+    {{ if .Methods }}
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+      <h2 class="text-lg font-semibold mb-3 dark:text-gray-200">Methods</h2>
+      <div class="grid gap-4">
+        {{ range .Methods }}
+        <div
+          class="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-4 last:pb-0"
+        >
+          <div class="font-mono text-sm mb-2">
+            <span class="text-purple-600 dark:text-purple-400">func</span>
+            <span class="text-blue-600 dark:text-blue-400">{{ .Name }}</span>{{
+            .Signature }}
+          </div>
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            {{ .Description }}
+          </p>
+        </div>
+        {{ end }}
+      </div>
+    </div>
+    {{ end }}
+  </div>
+  {{ end }}
+
+  <!-- Analysis Section -->
+  {{ template "analysis" .Analysis }}
+</div>
