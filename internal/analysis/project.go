@@ -97,8 +97,12 @@ func (p *ProjectAnalyzer) analyzeComponent(ctx context.Context, comp *ProjectCom
 			continue
 		}
 
-		analysis, err := p.analyzer.AnalyzeFile(ctx, *fileInfo)
+		analysis, rawResponse, err := p.analyzer.AnalyzeFile(ctx, *fileInfo)
 		if err != nil {
+			// Log the raw response if there was an error
+			if rawResponse != "" {
+				return fmt.Errorf("failed to analyze %s (raw response: %s): %w", filePath, rawResponse, err)
+			}
 			return fmt.Errorf("failed to analyze %s: %w", filePath, err)
 		}
 

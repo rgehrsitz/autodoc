@@ -18,8 +18,8 @@ import (
 	"github.com/openai/openai-go/option"
 	"github.com/rgehrsitz/AutoDoc/internal/collector"
 	"github.com/rgehrsitz/AutoDoc/internal/docs"
-	"github.com/rgehrsitz/AutoDoc/pkg/config"
 	"github.com/rgehrsitz/AutoDoc/internal/storage"
+	"github.com/rgehrsitz/AutoDoc/pkg/config"
 )
 
 // generateID creates a unique ID based on the provided path
