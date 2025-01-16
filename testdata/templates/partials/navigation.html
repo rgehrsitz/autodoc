@@ -1,0 +1,38 @@
+<!-- partials/navigation.html -->
+<div class="p-4">
+  <div class="mb-8">
+    <h1 class="text-xl font-bold dark:text-white">{{ .ProjectName }}</h1>
+    <p class="text-sm text-gray-600 dark:text-gray-400">Documentation</p>
+  </div>
+
+  <div class="space-y-2">
+    {{ range .Navigation }}
+    <div class="nav-item">
+      {{ if .Children }}
+      <div class="nav-group">
+        <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+          >{{ .Title }}</span
+        >
+        <div class="ml-4 mt-1 space-y-1">
+          {{ range .Children }}
+          <a
+            href="{{ .URL }}"
+            class="block px-2 py-1 text-sm {{ if .Active }}text-blue-600 dark:text-blue-400 font-medium{{ else }}text-gray-600 dark:text-gray-400{{ end }} hover:text-blue-600 dark:hover:text-blue-400"
+          >
+            {{ .Title }}
+          </a>
+          {{ end }}
+        </div>
+      </div>
+      {{ else }}
+      <a
+        href="{{ .URL }}"
+        class="block px-2 py-1 text-sm {{ if .Active }}text-blue-600 dark:text-blue-400 font-medium{{ else }}text-gray-600 dark:text-gray-400{{ end }} hover:text-blue-600 dark:hover:text-blue-400"
+      >
+        {{ .Title }}
+      </a>
+      {{ end }}
+    </div>
+    {{ end }}
+  </div>
+</div>

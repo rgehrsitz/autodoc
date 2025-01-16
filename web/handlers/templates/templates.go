@@ -7,6 +7,8 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,7 +16,7 @@ import (
 	analyzer "github.com/rgehrsitz/AutoDoc/internal/analysis"
 )
 
-//go:embed layouts/* partials/* components/*
+//go:embed layouts/* partials/* components/* index.html assets/css/* assets/js/*
 var templateFS embed.FS
 
 // TemplateData represents the data passed to documentation templates
@@ -32,15 +34,15 @@ type TemplateData struct {
 	Content     string
 }
 
-// ComponentData represents a single component in the documentation
+// ComponentData represents a component in the documentation
 type ComponentData struct {
-	Name        string
-	Path        string
-	Type        string
-	Description string
-	Content     string
-	Analysis    *analyzer.CodeAnalysisSchema
-	References  []ReferenceData
+	Name          string
+	Path          string
+	Type          string
+	Description   string
+	Analysis      *analyzer.CodeAnalysisSchema
+	SubComponents []ComponentData
+	References    []ReferenceData
 }
 
 // ReferenceData represents a relationship between components
@@ -81,14 +83,18 @@ func NewTemplateEngine(projectDir string) (*TemplateEngine, error) {
 		"diagram":        generateDiagram,
 	}
 
+	log.Printf("Parsing templates from embedded filesystem")
 	// Parse all templates
 	tmpl, err := template.New("").Funcs(funcMap).ParseFS(templateFS,
 		"layouts/*.html",
 		"partials/*.html",
-		"components/*.html")
+		"partials/navigation.html",
+		"components/*.html",
+		"index.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse templates: %w", err)
 	}
+	log.Printf("Parsed templates successfully")
 
 	return &TemplateEngine{
 		templates:  tmpl,
@@ -125,6 +131,49 @@ func (e *TemplateEngine) renderTemplate(name string, data interface{}) (string, 
 		return "", fmt.Errorf("failed to render template %s: %w", name, err)
 	}
 	return buf.String(), nil
+}
+
+// CopyAssets copies static assets to the output directory
+func (e *TemplateEngine) CopyAssets() error {
+	// Create assets directory structure
+	cssDir := filepath.Join(e.projectDir, "assets", "css")
+	jsDir := filepath.Join(e.projectDir, "assets", "js")
+	if err := os.MkdirAll(cssDir, 0755); err != nil {
+		return fmt.Errorf("failed to create css directory: %w", err)
+	}
+	if err := os.MkdirAll(jsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create js directory: %w", err)
+	}
+
+	// List of assets to copy
+	assetFiles := []string{
+		"assets/css/dark.css",
+		"assets/css/light.css",
+		"assets/css/style.css",
+		"assets/js/search.js",
+	}
+
+	for _, asset := range assetFiles {
+		// Read asset from embedded files
+		data, err := templateFS.ReadFile(asset)
+		if err != nil {
+			log.Printf("Failed to read embedded asset %s: %v", asset, err)
+			return fmt.Errorf("failed to read embedded asset %s: %w", asset, err)
+		}
+
+		// Determine the destination path
+		destPath := filepath.Join(e.projectDir, asset)
+
+		// Write the asset to the destination
+		if err := os.WriteFile(destPath, data, 0644); err != nil {
+			log.Printf("Failed to write asset to %s: %v", destPath, err)
+			return fmt.Errorf("failed to write asset to %s: %w", destPath, err)
+		}
+
+		log.Printf("Successfully copied asset to: %s", destPath)
+	}
+
+	return nil
 }
 
 // Template helper functions

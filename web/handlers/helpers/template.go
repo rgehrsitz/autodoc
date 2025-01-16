@@ -14,11 +14,14 @@ import (
 // RenderTemplate renders a template with the given data
 func RenderTemplate(outputPath string, templateName string, data interface{}, templates embed.FS) error {
 	// Log template loading attempt
-	log.Printf("Attempting to load embedded template: templates/%s.html", templateName)
+	log.Printf("Attempting to load embedded template: %s.html", templateName)
 
 	// Create template from embedded files
-	tmpl, err := template.New("layout.html").ParseFS(templates,
-		"templates/layout.html",
+	log.Printf("Attempting to parse template: %s", templateName)
+	tmpl, err := template.New("base.html").ParseFS(templates,
+		"templates/layouts/base.html",
+		"templates/partials/navigation.html",
+		"templates/partials/breadcrumb.html",
 		fmt.Sprintf("templates/%s.html", templateName))
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %w", err)
@@ -36,6 +39,9 @@ func RenderTemplate(outputPath string, templateName string, data interface{}, te
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer f.Close()
+
+	// Log template rendering attempt
+	log.Printf("Attempting to render template: %s", templateName)
 
 	// Execute template
 	log.Printf("Executing template for: %s", outputPath)

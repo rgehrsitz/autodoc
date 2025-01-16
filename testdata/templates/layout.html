@@ -1,0 +1,41 @@
+<!-- layouts/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ .Title }} - {{ .ProjectName }}</title>
+    <link rel="stylesheet" href="/assets/css/tailwind.min.css" />
+    <link rel="stylesheet" href="/assets/css/theme-{{ .Theme }}.css" />
+    <link rel="stylesheet" href="/assets/css/prism.css" />
+    <script src="/assets/js/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({ startOnLoad: true });
+    </script>
+  </head>
+  <body class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Navigation -->
+    <nav
+      class="fixed top-0 left-0 w-64 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto"
+    >
+      {{ template "navigation" . }}
+    </nav>
+
+    <!-- Main Content -->
+    <main class="ml-64 p-8">
+      <div class="max-w-4xl mx-auto">
+        <!-- Breadcrumb -->
+        {{ template "breadcrumb" . }}
+
+        <!-- Page Content -->
+        <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mt-4">
+          {{ template "content" . }}
+        </div>
+      </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="/assets/js/prism.js"></script>
+    <script src="/assets/js/search.js"></script>
+  </body>
+</html>

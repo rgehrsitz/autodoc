@@ -20,9 +20,9 @@ type Config struct {
 // LoadConfig loads configuration from environment variables or a config file.
 // For simplicity, this example uses environment variables.
 func LoadConfig() (*Config, error) {
-	openAIKey := os.Getenv("AUTODOC_OPENAI_KEY")
+	openAIKey := os.Getenv("OPENAI_API_KEY")
 	if openAIKey == "" {
-		return nil, fmt.Errorf("AUTODOC_OPENAI_KEY environment variable is not set")
+		return nil, fmt.Errorf("OPENAI_API_KEY environment variable is not set")
 	}
 
 	projectName := os.Getenv("AUTODOC_PROJECT_NAME")

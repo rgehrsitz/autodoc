@@ -14,6 +14,9 @@ import (
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	analyzer "github.com/rgehrsitz/AutoDoc/internal/analysis"
+	"github.com/rgehrsitz/AutoDoc/web/handlers/templates"
+	"encoding/json"
+	"log"
 )
 
 // DocumentationGenerator handles the generation of documentation
@@ -305,27 +308,147 @@ func (g *DocumentationGenerator) sanitizePath(path string) string {
 
 // GenerateDocumentation creates documentation from the analyses map and references.
 // This is a package-level function for backward compatibility with existing code.
-func GenerateDocumentation(projectPath string, analyses map[string]string, references map[string][]string) error {
-	config := Config{
-		OutputDir:    "docs_out",
-		ProjectName:  filepath.Base(projectPath),
-		TemplatePath: "templates",
-	}
+func GenerateDocumentation(outputDir string, analyses map[string]string, references map[string][]string) error {
+	language := determineLanguage(analyses)
+	projectType := determineProjectType(analyses)
 
-	generator, err := NewDocumentationGenerator(config)
+	// Create template engine
+	templateEngine, err := templates.NewTemplateEngine(outputDir)
 	if err != nil {
-		return fmt.Errorf("failed to create documentation generator: %w", err)
+		return fmt.Errorf("failed to create template engine: %w", err)
 	}
 
-	structure := &analyzer.ProjectStructure{
-		Root:       projectPath,
-		Language:   determineLanguage(analyses),
-		Type:       determineProjectType(analyses),
-		Components: convertToComponents(analyses, references),
+	// Copy static assets
+	if err := templateEngine.CopyAssets(); err != nil {
+		return fmt.Errorf("failed to copy assets: %w", err)
 	}
 
-	if err := generator.Generate(structure); err != nil {
-		return fmt.Errorf("failed to generate documentation: %w", err)
+	components := convertToComponents(analyses, references)
+
+	// Create components directory
+	componentsDir := filepath.Join(outputDir, "components")
+	if err := os.MkdirAll(componentsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create components directory: %w", err)
+	}
+
+	// Create template data
+	data := &templates.TemplateData{
+		Title:       "Project Documentation",
+		ProjectName: "sample",
+		Description: fmt.Sprintf("Generated documentation for sample (%s %s)", language, projectType),
+		LastUpdated: time.Now(),
+		Components:  make([]templates.ComponentData, 0, len(components)),
+		Theme:       "light",
+		Navigation: []templates.NavigationItem{
+			{
+				Title: "Overview",
+				URL:   "../index.html",
+			},
+			{
+				Title: "Components",
+				Children: []templates.NavigationItem{
+					{
+						Title: "Calculator",
+						URL:   "calculator.html",
+					},
+					{
+						Title: "Operations",
+						URL:   "operations.html",
+					},
+				},
+			},
+		},
+	}
+
+	// Convert components to template data and generate component pages
+	for _, file := range components {
+		// Parse the analysis JSON
+		var analysis analyzer.Analysis
+		if analysisJSON, ok := analyses[file.Path]; ok {
+			if err := json.Unmarshal([]byte(analysisJSON), &analysis); err != nil {
+				log.Printf("Warning: failed to parse analysis for %s: %v", file.Path, err)
+			}
+		}
+
+		// Create component data for the file
+		fileData := templates.ComponentData{
+			Name:        filepath.Base(file.Path),
+			Path:        strings.TrimPrefix(file.Path, "/"),
+			Type:        "file",
+			Description: analysis.Purpose,
+			Analysis:    &analysis,
+		}
+
+		// Create sub-components for each component in the file
+		var subComponents []templates.ComponentData
+		for _, comp := range analysis.Components {
+			subComponents = append(subComponents, templates.ComponentData{
+				Name:        comp.Name,
+				Path:        strings.ToLower(strings.ReplaceAll(comp.Name, ".", "/")),
+				Type:        comp.Type,
+				Description: comp.Description,
+				Analysis:    &analysis,
+			})
+		}
+		fileData.SubComponents = subComponents
+
+		data.Components = append(data.Components, fileData)
+
+		// Generate component page
+		componentHTML, err := templateEngine.RenderPage(&templates.TemplateData{
+			Title:       fileData.Name,
+			ProjectName: "sample",
+			Description: fileData.Description,
+			LastUpdated: time.Now(),
+			Components:  []templates.ComponentData{fileData},
+			Theme:      "light",
+			Navigation: []templates.NavigationItem{
+				{
+					Title: "Overview",
+					URL:   "../index.html",
+				},
+				{
+					Title: "Components",
+					Children: []templates.NavigationItem{
+						{
+							Title: "Calculator",
+							URL:   "calculator.html",
+						},
+						{
+							Title: "Operations",
+							URL:   "operations.html",
+						},
+					},
+				},
+			},
+			CurrentPath: fmt.Sprintf("components/%s.html", strings.ToLower(fileData.Name)),
+		}, "component", "content")
+		if err != nil {
+			return fmt.Errorf("failed to render component page for %s: %w", fileData.Name, err)
+		}
+
+		// Write component page
+		componentPath := filepath.Join(componentsDir, strings.ToLower(fileData.Name)+".html")
+		if err := os.WriteFile(componentPath, []byte(componentHTML), 0644); err != nil {
+			return fmt.Errorf("failed to write component page for %s: %w", fileData.Name, err)
+		}
+	}
+
+	// Generate documentation
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// Render index page
+	indexHTML, err := templateEngine.RenderPage(data, "layout", "index")
+	if err != nil {
+		return fmt.Errorf("failed to render index page: %w", err)
+	}
+
+	// Write index page
+	indexPath := filepath.Join(outputDir, "index.html")
+	if err := os.WriteFile(indexPath, []byte(indexHTML), 0644); err != nil {
+		return fmt.Errorf("failed to write index page: %w", err)
 	}
 
 	return nil

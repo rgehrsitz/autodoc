@@ -84,7 +84,7 @@
     {{ if .CrossReferences }}
     <div class="mb-4">
       <h3 class="text-md font-medium mb-2 dark:text-gray-300">Dependencies</h3>
-      <div class="mt-2">{{ diagram .Components }}</div>
+      <div class="mt-2">{{ generateDiagram .Components }}</div>
     </div>
     {{ end }}
   </div>

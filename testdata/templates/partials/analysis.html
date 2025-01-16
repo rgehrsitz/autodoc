@@ -35,7 +35,7 @@
         <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Analysis Insights</h2>
         <div class="space-y-4">
             {{ range .Insights }}
-            <div class="{{ if eq .Impact `high` }}border-red-500{{ else if eq .Impact `medium` }}border-yellow-500{{ else }}border-blue-500{{ end }} border-l-4 pl-4 py-1">
+            <div class="{{ if eq .Impact \"high\" }}border-red-500{{ else if eq .Impact \"medium\" }}border-yellow-500{{ else }}border-blue-500{{ end }} border-l-4 pl-4 py-1">
                 <div class="flex items-center justify-between mb-2">
                     <span class="font-medium text-gray-900 dark:text-gray-100">{{ .Type | formatType }}</span>
                     {{ .Impact | impact }}
@@ -67,7 +67,7 @@
         <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Dependencies</h2>
         <div class="overflow-x-auto">
             <div class="min-w-full">
-                {{ diagram .Components }}
+                {{ generateDiagram .Components }}
             </div>
         </div>
         <div class="mt-4 grid gap-4 md:grid-cols-2">
@@ -122,9 +122,9 @@
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Overall Coverage</span>
                     <span class="text-sm text-gray-600 dark:text-gray-400">{{ printf "%.1f%%" .CodeCoverage.Overall }}</span>
                 </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                    <div class="bg-green-600 h-2.5 rounded-full" style="{{ printf `width: %.1f%%` .CodeCoverage.Overall }}"></div>
-                </div>
+                <!-- <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                    <div class="bg-green-600 h-2.5 rounded-full" style="{{ printf \"width: %.1f%%\" .CodeCoverage.Overall }}"></div>
+                </div> -->
             </div>
             <!-- Coverage by Type -->
             {{ range $type, $coverage := .CodeCoverage.ByType }}
@@ -133,9 +133,9 @@
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ formatType $type }}</span>
                     <span class="text-sm text-gray-600 dark:text-gray-400">{{ printf "%.1f%%" $coverage }}</span>
                 </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                    <div class="bg-blue-600 h-2.5 rounded-full" style="{{ printf `width: %.1f%%` $coverage }}"></div>
-                </div>
+                <!-- <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                    <div class="bg-blue-600 h-2.5 rounded-full" style="{{ printf \"width: %.1f%%\" $coverage }}"></div>
+                </div> -->
             </div>
             {{ end }}
         </div>

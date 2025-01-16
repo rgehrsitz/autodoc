@@ -265,14 +265,20 @@ func (g *Generator) generateSearch(cfg Config) error {
 }
 
 func (g *Generator) copyAssets(cfg Config) error {
-	// Create assets directory
-	assetsDir := filepath.Join(cfg.OutputDir, "assets")
-	if err := os.MkdirAll(assetsDir, 0755); err != nil {
-		return fmt.Errorf("failed to create assets directory: %w", err)
+	// Create assets directory structure
+	cssDir := filepath.Join(cfg.OutputDir, "assets", "css")
+	jsDir := filepath.Join(cfg.OutputDir, "assets", "js")
+	if err := os.MkdirAll(cssDir, 0755); err != nil {
+		return fmt.Errorf("failed to create css directory: %w", err)
+	}
+	if err := os.MkdirAll(jsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create js directory: %w", err)
 	}
 
 	// List of assets to copy from embedded files
 	assetFiles := []string{
+		"assets/css/dark.css",
+		"assets/css/light.css", 
 		"assets/css/style.css",
 		"assets/js/search.js",
 	}
@@ -285,8 +291,9 @@ func (g *Generator) copyAssets(cfg Config) error {
 			return fmt.Errorf("failed to read embedded asset %s: %w", asset, err)
 		}
 
-		// Determine the destination path
-		destPath := filepath.Join(assetsDir, filepath.Base(asset))
+		// Determine the destination path, maintaining directory structure
+		relPath := strings.TrimPrefix(asset, "assets/")
+		destPath := filepath.Join(cfg.OutputDir, "assets", relPath)
 
 		// Write the asset to the destination
 		if err := os.WriteFile(destPath, data, 0644); err != nil {

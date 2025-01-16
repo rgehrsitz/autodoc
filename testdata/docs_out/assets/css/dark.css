@@ -1,0 +1,30 @@
+/* Dark theme */
+:root {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --border-color: #404040;
+  --link-color: #66b3ff;
+  --link-hover-color: #99ccff;
+  --code-bg: #2d2d2d;
+  --code-color: #e0e0e0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+pre, code {
+  background-color: var(--code-bg);
+  color: var(--code-color);
+}
+
+a {
+  color: var(--link-color);
+}
+
+a:hover {
+  color: var(--link-hover-color);
+}

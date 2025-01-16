@@ -1,0 +1,30 @@
+/* Light theme */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+  --border-color: #e9ecef;
+  --link-color: #0066cc;
+  --link-hover-color: #0056b3;
+  --code-bg: #f8f9fa;
+  --code-color: #212529;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+pre, code {
+  background-color: var(--code-bg);
+  color: var(--code-color);
+}
+
+a {
+  color: var(--link-color);
+}
+
+a:hover {
+  color: var(--link-hover-color);
+}

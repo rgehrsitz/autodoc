@@ -17,6 +17,7 @@ import (
 	"github.com/rgehrsitz/AutoDoc/internal/collector"
 	"github.com/rgehrsitz/AutoDoc/internal/storage"
 	"github.com/rgehrsitz/AutoDoc/pkg/config"
+	"github.com/rgehrsitz/AutoDoc/internal/docs"
 )
 
 // getProjectRoot returns the absolute path to the project root directory
@@ -175,12 +176,33 @@ func main() {
 
 	// 8. Test cross-file reference retrieval
 	log.Println("\nTesting cross-file references:")
+	
+	// Create a map to store analyses for documentation generation
+	analysesMap := make(map[string]string)
+	referencesMap := make(map[string][]string)
+
 	for _, file := range files {
+		// Get document and convert analysis to string for documentation
+		doc, err := store.GetDocument(generateID(file.Path))
+		if err != nil {
+			log.Printf("Error getting document for %s: %v", file.Path, err)
+			continue
+		}
+		analysesMap[file.Path] = doc.Content
+
+		// Get references
 		refs, err := store.GetReferences(generateID(file.Path))
 		if err != nil {
 			log.Printf("Error getting references for %s: %v", file.Path, err)
 			continue
 		}
+		
+		// Convert references to string slice
+		var refStrings []string
+		for _, ref := range refs {
+			refStrings = append(refStrings, ref.TargetID)
+		}
+		referencesMap[file.Path] = refStrings
 
 		backRefs, err := store.GetBackReferences(generateID(file.Path))
 		if err != nil {
@@ -198,17 +220,21 @@ func main() {
 			}
 			log.Printf("  - %s (%s) -> %s", ref.Type, refDoc.Path, ref.TargetID)
 		}
-
 		log.Printf("Used by (%d):", len(backRefs))
-		for _, ref := range backRefs {
-			refDoc, err := store.GetDocument(ref.SourceID)
-			if err != nil {
-				log.Printf("  - [Error getting source document: %v]", err)
-				continue
-			}
-			log.Printf("  - %s (%s) -> %s", ref.Type, refDoc.Path, ref.SourceID)
-		}
 	}
+
+	// 9. Generate HTML documentation
+	log.Println("\nGenerating HTML documentation...")
+	docsOutDir := filepath.Join(testDataDir, "docs_out")
+	if err := os.MkdirAll(docsOutDir, 0755); err != nil {
+		log.Fatalf("Failed to create docs output directory: %v", err)
+	}
+
+	if err := docs.GenerateDocumentation(docsOutDir, analysesMap, referencesMap); err != nil {
+		log.Fatalf("Failed to generate documentation: %v", err)
+	}
+
+	log.Printf("Documentation generated in: %s", docsOutDir)
 }
 
 func createSampleFiles(sampleDir string) error {
