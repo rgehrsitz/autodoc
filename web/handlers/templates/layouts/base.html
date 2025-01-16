@@ -1,4 +1,4 @@
-<!-- layouts/base.html -->
+<!-- autodoc/web/handlers/templates/layouts/base.html -->
 {{ define "layout" }}
 <!DOCTYPE html>
 <html lang="en">
@@ -15,10 +15,14 @@
     {{ end }}
   </head>
   <body class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <nav class="fixed top-0 left-0 w-64 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+    <nav
+      class="fixed top-0 left-0 w-64 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto"
+    >
       <div class="p-4">
         <div class="mb-8">
-          <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ .ProjectName }}</h1>
+          <h1 class="text-xl font-bold text-gray-900 dark:text-white">
+            {{ .ProjectName }}
+          </h1>
           <p class="text-sm text-gray-600 dark:text-gray-400">Documentation</p>
         </div>
 
@@ -27,17 +31,25 @@
           <div class="nav-item">
             {{ if .Children }}
             <div class="nav-group">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ .Title }}</span>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >{{ .Title }}</span
+              >
               <div class="ml-4 mt-1 space-y-1">
                 {{ range .Children }}
-                <a href="{{ .URL }}" class="block px-2 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                <a
+                  href="{{ .URL }}"
+                  class="block px-2 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                >
                   {{ .Title }}
                 </a>
                 {{ end }}
               </div>
             </div>
             {{ else }}
-            <a href="{{ .URL }}" class="block px-2 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+            <a
+              href="{{ .URL }}"
+              class="block px-2 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+            >
               {{ .Title }}
             </a>
             {{ end }}
@@ -53,11 +65,19 @@
         <nav class="text-sm text-gray-600 dark:text-gray-400">
           <ol class="list-none p-0 inline-flex">
             <li class="flex items-center">
-              <a href="../index.html" class="hover:text-blue-600 dark:hover:text-blue-400">Home</a>
+              <a
+                href="../index.html"
+                class="hover:text-blue-600 dark:hover:text-blue-400"
+                >Home</a
+              >
             </li>
             <li class="flex items-center">
               <svg class="h-4 w-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                  clip-rule="evenodd"
+                />
               </svg>
               <span class="text-gray-800 dark:text-gray-200">{{ .Title }}</span>
             </li>

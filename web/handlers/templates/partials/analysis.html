@@ -1,144 +1,209 @@
-<!-- partials/analysis.html -->
+<!-- autodoc/web/handlers/templates/partials/analysis.html -->
 <div class="analysis-section space-y-6">
-    <!-- Code Quality Overview -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-        <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Code Quality</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {{ range $key, $value := .CodeQualityMetrics }}
-            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                <div class="text-sm text-gray-500 dark:text-gray-400">{{ formatType $key }}</div>
-                <div class="{{ if ge $value 80.0 }}text-green-600 dark:text-green-400{{ else if ge $value 60.0 }}text-yellow-600 dark:text-yellow-400{{ else }}text-red-600 dark:text-red-400{{ end }} mt-1 text-2xl font-semibold">
-                    {{ printf "%.1f" $value }}
-                </div>
-            </div>
-            {{ end }}
+  <!-- Code Quality Overview -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+    <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Code Quality</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {{ range $key, $value := .CodeQualityMetrics }}
+      <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          {{ formatType $key }}
         </div>
+        <div
+          class="{{ if ge $value 80.0 }}text-green-600 dark:text-green-400{{ else if ge $value 60.0 }}text-yellow-600 dark:text-yellow-400{{ else }}text-red-600 dark:text-red-400{{ end }} mt-1 text-2xl font-semibold"
+        >
+          {{ printf "%.1f" $value }}
+        </div>
+      </div>
+      {{ end }}
     </div>
+  </div>
 
-    <!-- Architectural Patterns -->
-    {{ if .ArchitecturalPatterns }}
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-        <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Architectural Patterns</h2>
-        <div class="flex flex-wrap gap-3">
-            {{ range .ArchitecturalPatterns }}
-            <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full text-sm font-medium">
-                {{ . }}
-            </div>
-            {{ end }}
-        </div>
+  <!-- Architectural Patterns -->
+  {{ if .ArchitecturalPatterns }}
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+    <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">
+      Architectural Patterns
+    </h2>
+    <div class="flex flex-wrap gap-3">
+      {{ range .ArchitecturalPatterns }}
+      <div
+        class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-full text-sm font-medium"
+      >
+        {{ . }}
+      </div>
+      {{ end }}
     </div>
-    {{ end }}
+  </div>
+  {{ end }}
 
-    <!-- Insights -->
-    {{ if .Insights }}
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-        <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Analysis Insights</h2>
-        <div class="space-y-4">
-            {{ range .Insights }}
-            <div class="{{ if eq .Impact `high` }}border-red-500{{ else if eq .Impact `medium` }}border-yellow-500{{ else }}border-blue-500{{ end }} border-l-4 pl-4 py-1">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="font-medium text-gray-900 dark:text-gray-100">{{ .Type | formatType }}</span>
-                    {{ .Impact | impact }}
-                </div>
-                <p class="text-gray-600 dark:text-gray-400">{{ .Description }}</p>
-                {{ if .Components }}
-                <div class="mt-2 flex flex-wrap gap-2">
-                    {{ range .Components }}
-                    <a href="{{ . | componentLink }}"
-                       class="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                        </svg>
-                        {{ . }}
-                    </a>
-                    {{ end }}
-                </div>
-                {{ end }}
-            </div>
-            {{ end }}
+  <!-- Insights -->
+  {{ if .Insights }}
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+    <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">
+      Analysis Insights
+    </h2>
+    <div class="space-y-4">
+      {{ range .Insights }}
+      <div
+        class="{{ if eq .Impact `high` }}border-red-500{{ else if eq .Impact `medium` }}border-yellow-500{{ else }}border-blue-500{{ end }} border-l-4 pl-4 py-1"
+      >
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-medium text-gray-900 dark:text-gray-100"
+            >{{ .Type | formatType }}</span
+          >
+          {{ .Impact | impact }}
         </div>
+        <p class="text-gray-600 dark:text-gray-400">{{ .Description }}</p>
+        {{ if .Components }}
+        <div class="mt-2 flex flex-wrap gap-2">
+          {{ range .Components }}
+          <a
+            href="{{ . | componentLink }}"
+            class="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center"
+          >
+            <svg
+              class="w-4 h-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+              />
+            </svg>
+            {{ . }}
+          </a>
+          {{ end }}
+        </div>
+        {{ end }}
+      </div>
+      {{ end }}
     </div>
-    {{ end }}
+  </div>
+  {{ end }}
 
-    <!-- Dependencies Graph -->
-    {{ if .CrossReferences }}
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-        <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Dependencies</h2>
-        <div class="overflow-x-auto">
-            <div class="min-w-full">
-                {{ diagram .Components }}
-            </div>
-        </div>
-        <div class="mt-4 grid gap-4 md:grid-cols-2">
-            <!-- Direct Dependencies -->
-            <div>
-                <h3 class="text-lg font-medium mb-2 dark:text-gray-300">Direct Dependencies</h3>
-                <ul class="space-y-2">
-                    {{ range $target, $refs := .CrossReferences }}
-                    <li class="flex items-center text-sm">
-                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M9 5l7 7-7 7" />
-                        </svg>
-                        <a href="{{ $target | componentLink }}"
-                           class="text-blue-600 dark:text-blue-400 hover:underline">{{ $target }}</a>
-                    </li>
-                    {{ end }}
-                </ul>
-            </div>
-            <!-- Used By -->
-            <div>
-                <h3 class="text-lg font-medium mb-2 dark:text-gray-300">Used By</h3>
-                {{ if .UsedBy }}
-                <ul class="space-y-2">
-                    {{ range .UsedBy }}
-                    <li class="flex items-center text-sm">
-                        <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M15 19l-7-7 7-7" />
-                        </svg>
-                        <a href="{{ . | componentLink }}"
-                           class="text-blue-600 dark:text-blue-400 hover:underline">{{ . }}</a>
-                    </li>
-                    {{ end }}
-                </ul>
-                {{ else }}
-                <p class="text-sm text-gray-500 dark:text-gray-400">No known dependents</p>
-                {{ end }}
-            </div>
-        </div>
+  <!-- Dependencies Graph -->
+  {{ if .CrossReferences }}
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+    <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Dependencies</h2>
+    <div class="overflow-x-auto">
+      <div class="min-w-full">{{ diagram .Components }}</div>
     </div>
-    {{ end }}
+    <div class="mt-4 grid gap-4 md:grid-cols-2">
+      <!-- Direct Dependencies -->
+      <div>
+        <h3 class="text-lg font-medium mb-2 dark:text-gray-300">
+          Direct Dependencies
+        </h3>
+        <ul class="space-y-2">
+          {{ range $target, $refs := .CrossReferences }}
+          <li class="flex items-center text-sm">
+            <svg
+              class="w-4 h-4 mr-2 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+            <a
+              href="{{ $target | componentLink }}"
+              class="text-blue-600 dark:text-blue-400 hover:underline"
+              >{{ $target }}</a
+            >
+          </li>
+          {{ end }}
+        </ul>
+      </div>
+      <!-- Used By -->
+      <div>
+        <h3 class="text-lg font-medium mb-2 dark:text-gray-300">Used By</h3>
+        {{ if .UsedBy }}
+        <ul class="space-y-2">
+          {{ range .UsedBy }}
+          <li class="flex items-center text-sm">
+            <svg
+              class="w-4 h-4 mr-2 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            <a
+              href="{{ . | componentLink }}"
+              class="text-blue-600 dark:text-blue-400 hover:underline"
+              >{{ . }}</a
+            >
+          </li>
+          {{ end }}
+        </ul>
+        {{ else }}
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          No known dependents
+        </p>
+        {{ end }}
+      </div>
+    </div>
+  </div>
+  {{ end }}
 
-    <!-- Code Coverage -->
-    {{ if .CodeCoverage }}
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
-        <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Code Coverage</h2>
-        <div class="space-y-4">
-            <!-- Overall Coverage -->
-            <div>
-                <div class="flex justify-between mb-1">
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Overall Coverage</span>
-                    <span class="text-sm text-gray-600 dark:text-gray-400">{{ printf "%.1f%%" .CodeCoverage.Overall }}</span>
-                </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                    <div class="bg-green-600 h-2.5 rounded-full" style="{{ printf `width: %.1f%%` .CodeCoverage.Overall }}"></div>
-                </div>
-            </div>
-            <!-- Coverage by Type -->
-            {{ range $type, $coverage := .CodeCoverage.ByType }}
-            <div>
-                <div class="flex justify-between mb-1">
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ formatType $type }}</span>
-                    <span class="text-sm text-gray-600 dark:text-gray-400">{{ printf "%.1f%%" $coverage }}</span>
-                </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                    <div class="bg-blue-600 h-2.5 rounded-full" style="{{ printf `width: %.1f%%` $coverage }}"></div>
-                </div>
-            </div>
-            {{ end }}
+  <!-- Code Coverage -->
+  {{ if .CodeCoverage }}
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+    <h2 class="text-xl font-semibold mb-4 dark:text-gray-200">Code Coverage</h2>
+    <div class="space-y-4">
+      <!-- Overall Coverage -->
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Overall Coverage</span
+          >
+          <span class="text-sm text-gray-600 dark:text-gray-400"
+            >{{ printf "%.1f%%" .CodeCoverage.Overall }}</span
+          >
         </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+          <div
+            class="bg-green-600 h-2.5 rounded-full"
+            style="{{ printf `width: %.1f%%` .CodeCoverage.Overall }}"
+          ></div>
+        </div>
+      </div>
+      <!-- Coverage by Type -->
+      {{ range $type, $coverage := .CodeCoverage.ByType }}
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >{{ formatType $type }}</span
+          >
+          <span class="text-sm text-gray-600 dark:text-gray-400"
+            >{{ printf "%.1f%%" $coverage }}</span
+          >
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+          <div
+            class="bg-blue-600 h-2.5 rounded-full"
+            style="{{ printf `width: %.1f%%` $coverage }}"
+          ></div>
+        </div>
+      </div>
+      {{ end }}
     </div>
-    {{ end }}
+  </div>
+  {{ end }}
 </div>
