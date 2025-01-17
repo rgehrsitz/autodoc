@@ -15,20 +15,21 @@ import (
 	"sync"
 	"time"
 
+	analyzer "github.com/rgehrsitz/AutoDoc/internal/analysis"
 	"github.com/rgehrsitz/AutoDoc/internal/storage"
 )
 
 // Generator handles the documentation generation process.
 type Generator struct {
 	store  storage.Storage
-	openai *OpenAIClient
+	openai *analyzer.OpenAIClient
 }
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator(store storage.Storage, openaiKey string) *Generator {
 	return &Generator{
 		store:  store,
-		openai: NewOpenAIClient(openaiKey),
+		openai: analyzer.NewOpenAIClient(openaiKey),
 	}
 }
 

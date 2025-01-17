@@ -112,6 +112,207 @@ func (g *DocumentationGenerator) generatePages(structure *analyzer.ProjectStruct
 	return nil
 }
 
+// GenerateDocumentation creates documentation from the analyses map and references
+func GenerateDocumentation(outputDir string, analyses map[string]string, references map[string][]string) error {
+	language := determineLanguage(analyses)
+	projectType := determineProjectType(analyses)
+
+	// Create template engine
+	templateEngine, err := templates.NewTemplateEngine(outputDir)
+	if err != nil {
+		return fmt.Errorf("failed to create template engine: %w", err)
+	}
+
+	// Copy static assets
+	if err := templateEngine.CopyAssets(); err != nil {
+		return fmt.Errorf("failed to copy assets: %w", err)
+	}
+
+	components := convertToComponents(analyses, references)
+
+	// Create components directory
+	componentsDir := filepath.Join(outputDir, "components")
+	if err := os.MkdirAll(componentsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create components directory: %w", err)
+	}
+
+	// Create template data
+	data := &templates.TemplateData{
+		Title:       "Project Documentation",
+		ProjectName: "sample",
+		Description: fmt.Sprintf("Generated documentation for sample (%s %s)", language, projectType),
+		LastUpdated: time.Now(),
+		Components:  make([]templates.ComponentData, 0, len(components)),
+		Theme:       "light",
+		Navigation: []templates.NavigationItem{
+			{
+				Title: "Overview",
+				URL:   "../index.html",
+			},
+			{
+				Title: "Components",
+				Children: []templates.NavigationItem{
+					{
+						Title: "Calculator",
+						URL:   "calculator.html",
+					},
+					{
+						Title: "Operations",
+						URL:   "operations.html",
+					},
+				},
+			},
+		},
+	}
+
+	// Convert components to template data and generate component pages
+	for _, file := range components {
+		// Parse the analysis JSON
+		var analysis analyzer.Analysis
+		if analysisJSON, ok := analyses[file.Path]; ok {
+			if err := json.Unmarshal([]byte(analysisJSON), &analysis); err != nil {
+				log.Printf("Warning: failed to parse analysis for %s: %v", file.Path, err)
+				continue
+			}
+		}
+
+		// Create component data for the file
+		fileData := templates.ComponentData{
+			Name:        filepath.Base(file.Path),
+			Path:        strings.TrimPrefix(file.Path, "/"),
+			Type:        "file",
+			Description: analysis.Purpose,
+			Analysis:    analyzer.ConvertToCodeAnalysis(&analysis), // Convert Analysis to CodeAnalysisSchema
+		}
+
+		// Create sub-components for each component in the file
+		var subComponents []templates.ComponentData
+		for _, comp := range analysis.Components {
+			subComponents = append(subComponents, templates.ComponentData{
+				Name:        comp.Name,
+				Path:        strings.ToLower(strings.ReplaceAll(comp.Name, ".", "/")),
+				Type:        comp.Type,
+				Description: comp.Description,
+				Analysis:    analyzer.ConvertToCodeAnalysis(&analysis), // Convert Analysis to CodeAnalysisSchema
+			})
+		}
+		fileData.SubComponents = subComponents
+
+		data.Components = append(data.Components, fileData)
+
+		// Generate component page
+		componentHTML, err := templateEngine.RenderPage(&templates.TemplateData{
+			Title:       fileData.Name,
+			ProjectName: "sample",
+			Description: fileData.Description,
+			LastUpdated: time.Now(),
+			Components:  []templates.ComponentData{fileData},
+			Theme:       "light",
+			Navigation: []templates.NavigationItem{
+				{
+					Title: "Overview",
+					URL:   "../index.html",
+				},
+				{
+					Title: "Components",
+					Children: []templates.NavigationItem{
+						{
+							Title: "Calculator",
+							URL:   "calculator.html",
+						},
+						{
+							Title: "Operations",
+							URL:   "operations.html",
+						},
+					},
+				},
+			},
+			CurrentPath: fmt.Sprintf("components/%s.html", strings.ToLower(fileData.Name)),
+		}, "component", "content")
+		if err != nil {
+			return fmt.Errorf("failed to render component page for %s: %w", fileData.Name, err)
+		}
+
+		// Write component page
+		componentPath := filepath.Join(componentsDir, strings.ToLower(fileData.Name)+".html")
+		if err := os.WriteFile(componentPath, []byte(componentHTML), 0644); err != nil {
+			return fmt.Errorf("failed to write component page for %s: %w", fileData.Name, err)
+		}
+	}
+
+	// Generate documentation
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// Render index page
+	indexHTML, err := templateEngine.RenderPage(data, "layout", "index")
+	if err != nil {
+		return fmt.Errorf("failed to render index page: %w", err)
+	}
+
+	// Write index page
+	indexPath := filepath.Join(outputDir, "index.html")
+	if err := os.WriteFile(indexPath, []byte(indexHTML), 0644); err != nil {
+		return fmt.Errorf("failed to write index page: %w", err)
+	}
+
+	return nil
+}
+
+// buildNavigation creates the navigation structure
+func (g *DocumentationGenerator) buildNavigation(structure *analyzer.ProjectStructure) []NavItem {
+	nav := []NavItem{
+		{
+			Title: "Home",
+			URL:   "index.html",
+		},
+		{
+			Title: "Architecture",
+			URL:   "architecture.html",
+		},
+	}
+
+	if len(structure.Components) > 0 {
+		components := NavItem{
+			Title:    "Components",
+			Children: make([]NavItem, 0, len(structure.Components)),
+		}
+
+		for _, comp := range structure.Components {
+			components.Children = append(components.Children, NavItem{
+				Title: comp.Name,
+				URL:   fmt.Sprintf("components/%s.html", g.sanitizePath(comp.Path)),
+			})
+		}
+
+		nav = append(nav, components)
+	}
+
+	return nav
+}
+
+// copyAssets copies static assets to the output directory
+func (g *DocumentationGenerator) copyAssets() error {
+	assetsDir := filepath.Join(g.outDir, "assets")
+	if err := os.MkdirAll(assetsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create assets directory: %w", err)
+	}
+
+	assets := map[string]string{
+		"style.css": defaultStyles,
+		"script.js": defaultScript,
+	}
+
+	for name, content := range assets {
+		if err := os.WriteFile(filepath.Join(assetsDir, name), []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to write asset %s: %w", name, err)
+		}
+	}
+
+	return nil
+}
+
 // generateIndexPage creates the main index.html
 func (g *DocumentationGenerator) generateIndexPage(structure *analyzer.ProjectStructure, nav []NavItem) error {
 	content := strings.Builder{}
@@ -205,6 +406,7 @@ func (g *DocumentationGenerator) renderPage(outPath, title, markdown string, nav
 		Content:     template.HTML(html),
 		Navigation:  nav,
 		LastUpdated: time.Now(),
+		Theme:       "light",
 	}
 
 	outPath = filepath.Join(g.outDir, outPath)
@@ -233,51 +435,16 @@ func (g *DocumentationGenerator) renderPage(outPath, title, markdown string, nav
 	return nil
 }
 
-// buildNavigation creates the navigation structure
-func (g *DocumentationGenerator) buildNavigation(structure *analyzer.ProjectStructure) []NavItem {
-	nav := []NavItem{
-		{Title: "Home", URL: "index.html"},
-		{Title: "Architecture", URL: "architecture.html"},
-	}
-
-	if len(structure.Components) > 0 {
-		components := NavItem{
-			Title:    "Components",
-			Children: make([]NavItem, 0, len(structure.Components)),
+// sanitizePath creates a safe filename from a path
+func (g *DocumentationGenerator) sanitizePath(path string) string {
+	name := strings.ReplaceAll(path, string(filepath.Separator), "_")
+	name = strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			return r
 		}
-
-		for _, comp := range structure.Components {
-			components.Children = append(components.Children, NavItem{
-				Title: comp.Name,
-				URL:   fmt.Sprintf("components/%s.html", g.sanitizePath(comp.Path)),
-			})
-		}
-
-		nav = append(nav, components)
-	}
-
-	return nav
-}
-
-// copyAssets copies static assets to the output directory
-func (g *DocumentationGenerator) copyAssets() error {
-	assetsDir := filepath.Join(g.outDir, "assets")
-	if err := os.MkdirAll(assetsDir, 0755); err != nil {
-		return fmt.Errorf("failed to create assets directory: %w", err)
-	}
-
-	assets := map[string]string{
-		"style.css": defaultStyles,
-		"script.js": defaultScript,
-	}
-
-	for name, content := range assets {
-		if err := os.WriteFile(filepath.Join(assetsDir, name), []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to write asset %s: %w", name, err)
-		}
-	}
-
-	return nil
+		return '_'
+	}, name)
+	return name
 }
 
 // markdownToHTML converts markdown to HTML with our preferred settings
@@ -293,166 +460,6 @@ func (g *DocumentationGenerator) markdownToHTML(input string) string {
 	renderer := html.NewRenderer(opts)
 
 	return string(markdown.Render(doc, renderer))
-}
-
-// sanitizePath creates a safe filename from a path
-func (g *DocumentationGenerator) sanitizePath(path string) string {
-	name := strings.ReplaceAll(path, string(filepath.Separator), "_")
-	name = strings.Map(func(r rune) rune {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
-			return r
-		}
-		return '_'
-	}, name)
-	return name
-}
-
-// GenerateDocumentation creates documentation from the analyses map and references.
-// This is a package-level function for backward compatibility with existing code.
-func GenerateDocumentation(outputDir string, analyses map[string]string, references map[string][]string) error {
-	language := determineLanguage(analyses)
-	projectType := determineProjectType(analyses)
-
-	// Create template engine
-	templateEngine, err := templates.NewTemplateEngine(outputDir)
-	if err != nil {
-		return fmt.Errorf("failed to create template engine: %w", err)
-	}
-
-	// Copy static assets
-	if err := templateEngine.CopyAssets(); err != nil {
-		return fmt.Errorf("failed to copy assets: %w", err)
-	}
-
-	components := convertToComponents(analyses, references)
-
-	// Create components directory
-	componentsDir := filepath.Join(outputDir, "components")
-	if err := os.MkdirAll(componentsDir, 0755); err != nil {
-		return fmt.Errorf("failed to create components directory: %w", err)
-	}
-
-	// Create template data
-	data := &templates.TemplateData{
-		Title:       "Project Documentation",
-		ProjectName: "sample",
-		Description: fmt.Sprintf("Generated documentation for sample (%s %s)", language, projectType),
-		LastUpdated: time.Now(),
-		Components:  make([]templates.ComponentData, 0, len(components)),
-		Theme:       "light",
-		Navigation: []templates.NavigationItem{
-			{
-				Title: "Overview",
-				URL:   "../index.html",
-			},
-			{
-				Title: "Components",
-				Children: []templates.NavigationItem{
-					{
-						Title: "Calculator",
-						URL:   "calculator.html",
-					},
-					{
-						Title: "Operations",
-						URL:   "operations.html",
-					},
-				},
-			},
-		},
-	}
-
-	// Convert components to template data and generate component pages
-	for _, file := range components {
-		// Parse the analysis JSON
-		var analysis analyzer.Analysis
-		if analysisJSON, ok := analyses[file.Path]; ok {
-			if err := json.Unmarshal([]byte(analysisJSON), &analysis); err != nil {
-				log.Printf("Warning: failed to parse analysis for %s: %v", file.Path, err)
-			}
-		}
-
-		// Create component data for the file
-		fileData := templates.ComponentData{
-			Name:        filepath.Base(file.Path),
-			Path:        strings.TrimPrefix(file.Path, "/"),
-			Type:        "file",
-			Description: analysis.Purpose,
-			Analysis:    &analysis,
-		}
-
-		// Create sub-components for each component in the file
-		var subComponents []templates.ComponentData
-		for _, comp := range analysis.Components {
-			subComponents = append(subComponents, templates.ComponentData{
-				Name:        comp.Name,
-				Path:        strings.ToLower(strings.ReplaceAll(comp.Name, ".", "/")),
-				Type:        comp.Type,
-				Description: comp.Description,
-				Analysis:    &analysis,
-			})
-		}
-		fileData.SubComponents = subComponents
-
-		data.Components = append(data.Components, fileData)
-
-		// Generate component page
-		componentHTML, err := templateEngine.RenderPage(&templates.TemplateData{
-			Title:       fileData.Name,
-			ProjectName: "sample",
-			Description: fileData.Description,
-			LastUpdated: time.Now(),
-			Components:  []templates.ComponentData{fileData},
-			Theme:       "light",
-			Navigation: []templates.NavigationItem{
-				{
-					Title: "Overview",
-					URL:   "../index.html",
-				},
-				{
-					Title: "Components",
-					Children: []templates.NavigationItem{
-						{
-							Title: "Calculator",
-							URL:   "calculator.html",
-						},
-						{
-							Title: "Operations",
-							URL:   "operations.html",
-						},
-					},
-				},
-			},
-			CurrentPath: fmt.Sprintf("components/%s.html", strings.ToLower(fileData.Name)),
-		}, "component", "content")
-		if err != nil {
-			return fmt.Errorf("failed to render component page for %s: %w", fileData.Name, err)
-		}
-
-		// Write component page
-		componentPath := filepath.Join(componentsDir, strings.ToLower(fileData.Name)+".html")
-		if err := os.WriteFile(componentPath, []byte(componentHTML), 0644); err != nil {
-			return fmt.Errorf("failed to write component page for %s: %w", fileData.Name, err)
-		}
-	}
-
-	// Generate documentation
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
-	}
-
-	// Render index page
-	indexHTML, err := templateEngine.RenderPage(data, "layout", "index")
-	if err != nil {
-		return fmt.Errorf("failed to render index page: %w", err)
-	}
-
-	// Write index page
-	indexPath := filepath.Join(outputDir, "index.html")
-	if err := os.WriteFile(indexPath, []byte(indexHTML), 0644); err != nil {
-		return fmt.Errorf("failed to write index page: %w", err)
-	}
-
-	return nil
 }
 
 // Helper functions for GenerateDocumentation
