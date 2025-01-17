@@ -1,4 +1,4 @@
-// autodoc/pkg/logging/errors.go
+// autodoc/internal/logging/errors.go
 
 package logging
 

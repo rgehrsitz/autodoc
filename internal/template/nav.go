@@ -1,4 +1,4 @@
-// autodoc/web/handlers/helpers/nav.go
+// autodoc/internal/template/nav.go
 
 package helpers
 

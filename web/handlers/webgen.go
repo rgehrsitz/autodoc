@@ -1,4 +1,4 @@
-// autodoc/web/handlers/generator.go
+// autodoc/web/handlers/webgen.go
 
 package handlers
 
@@ -278,7 +278,7 @@ func (g *Generator) copyAssets(cfg Config) error {
 	// List of assets to copy from embedded files
 	assetFiles := []string{
 		"assets/css/dark.css",
-		"assets/css/light.css", 
+		"assets/css/light.css",
 		"assets/css/style.css",
 		"assets/js/search.js",
 	}

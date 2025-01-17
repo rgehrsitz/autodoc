@@ -1,0 +1,99 @@
+# AutoDoc Testing Strategy
+
+## Overview
+This document outlines the testing strategy for AutoDoc, focusing on template testing and overall test organization.
+
+## Template Testing
+
+### Core Principles
+1. Use embedded templates for testing
+2. No physical template files in testdata
+3. Use in-memory rendering for tests
+4. Mock external dependencies
+
+### Testing Layers
+
+1. **Unit Tests**
+   - Test individual template functions
+   - Test template helpers
+   - Test template rendering logic
+
+2. **Integration Tests**
+   - Test template engine with storage
+   - Test complete page generation
+   - Test navigation generation
+
+3. **End-to-End Tests**
+   - Test complete documentation generation
+   - Test theme switching
+   - Test responsive design
+
+### Test Data Management
+
+1. **Input Data**
+   - Use fixtures for common test data
+   - Generate test data programmatically
+   - Keep test data minimal and focused
+
+2. **Expected Output**
+   - Store expected HTML snippets
+   - Use template assertions
+   - Compare rendered output
+
+3. **Mock Data**
+   - Mock storage interface
+   - Mock external services
+   - Mock file system when needed
+
+## Directory Structure
+
+```
+tests/
+├── unit/                  # Unit tests
+│   ├── templates/         # Template unit tests
+│   └── helpers/          # Helper function tests
+├── integration/           # Integration tests
+│   └── generator/        # Generator integration tests
+└── e2e/                  # End-to-end tests
+    └── documentation/    # Documentation generation tests
+
+testdata/
+├── input/                # Test input files
+├── expected/            # Expected output files
+└── fixtures/            # Test fixtures
+```
+
+## Best Practices
+
+1. **Template Testing**
+   - Test with both valid and invalid data
+   - Test edge cases
+   - Test different themes
+   - Test responsive breakpoints
+
+2. **Test Isolation**
+   - Use clean test fixtures
+   - Reset state between tests
+   - Avoid test interdependence
+
+3. **Test Coverage**
+   - Aim for high template coverage
+   - Test all template functions
+   - Test error conditions
+
+## Implementation Guidelines
+
+1. **Use Test Helpers**
+   - Create reusable test utilities
+   - Standardize assertion methods
+   - Share common test data
+
+2. **Mock External Dependencies**
+   - Use interfaces for external services
+   - Create mock implementations
+   - Test error conditions
+
+3. **Continuous Integration**
+   - Run tests on every commit
+   - Enforce coverage requirements
+   - Automate test execution

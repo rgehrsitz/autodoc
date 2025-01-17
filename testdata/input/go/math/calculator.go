@@ -1,4 +1,4 @@
-// autodoc/sample/math/calculator.go
+// autodoc/testdata/input/go/math/calculator.go
 
 package math
 

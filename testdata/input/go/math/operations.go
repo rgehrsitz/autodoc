@@ -1,4 +1,4 @@
-// autodoc/sample/math/operations.go
+// autodoc/testdata/input/go/math/operations.go
 
 package math
 

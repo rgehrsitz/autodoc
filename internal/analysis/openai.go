@@ -1,6 +1,6 @@
-// autodoc/internal/generator/openai.go
+// autodoc/internal/analysis/openai.go
 
-package generator
+package analyzer
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-// autodoc/sample/main.go
+// autodoc/testdata/input/go/main.go
 
 package main
 

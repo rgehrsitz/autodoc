@@ -1,4 +1,4 @@
-// autodoc/internal/generator/generator.go
+// autodoc/internal/generator/processor.go
 
 package generator
 

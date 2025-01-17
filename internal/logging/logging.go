@@ -1,4 +1,4 @@
-// autodoc/pkg/logging/logging.go
+// autodoc/internal/logging/logging.go
 
 package logging
 

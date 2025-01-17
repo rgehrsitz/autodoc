@@ -1,4 +1,4 @@
-// autodoc/internal/docs/generator.go
+// autodoc/internal/docs/docgen.go
 
 package docs
 
@@ -10,13 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
+	"log"
+
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	analyzer "github.com/rgehrsitz/AutoDoc/internal/analysis"
 	"github.com/rgehrsitz/AutoDoc/web/handlers/templates"
-	"encoding/json"
-	"log"
 )
 
 // DocumentationGenerator handles the generation of documentation
@@ -401,7 +402,7 @@ func GenerateDocumentation(outputDir string, analyses map[string]string, referen
 			Description: fileData.Description,
 			LastUpdated: time.Now(),
 			Components:  []templates.ComponentData{fileData},
-			Theme:      "light",
+			Theme:       "light",
 			Navigation: []templates.NavigationItem{
 				{
 					Title: "Overview",
