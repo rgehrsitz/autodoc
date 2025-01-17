@@ -103,12 +103,17 @@ func NewTemplateEngine(projectDir string) (*TemplateEngine, error) {
 	}, nil
 }
 
+// Templates returns the underlying template set
+func (e *TemplateEngine) Templates() *template.Template {
+	return e.templates
+}
+
 // RenderPage renders a complete page using the layout template
 func (e *TemplateEngine) RenderPage(data *TemplateData, layout, page string) (string, error) {
 	var buf bytes.Buffer
 
 	// First render the page content
-	pageContent, err := e.renderTemplate(page, data)
+	pageContent, err := e.RenderTemplate(page, data)
 	if err != nil {
 		return "", fmt.Errorf("failed to render page content: %w", err)
 	}
@@ -125,7 +130,7 @@ func (e *TemplateEngine) RenderPage(data *TemplateData, layout, page string) (st
 }
 
 // RenderTemplate renders a specific template with data
-func (e *TemplateEngine) renderTemplate(name string, data interface{}) (string, error) {
+func (e *TemplateEngine) RenderTemplate(name string, data interface{}) (string, error) {
 	var buf bytes.Buffer
 	if err := e.templates.ExecuteTemplate(&buf, name, data); err != nil {
 		return "", fmt.Errorf("failed to render template %s: %w", name, err)

@@ -32,8 +32,7 @@ func NewTemplateTestHelper(t *testing.T) *TemplateTestHelper {
 // RenderTemplate renders a template with test data
 func (h *TemplateTestHelper) RenderTemplate(name string, data interface{}) string {
 	var buf bytes.Buffer
-	err := h.engine.RenderTemplate(&buf, name, data)
-	if err != nil {
+	if err := h.engine.Templates().ExecuteTemplate(&buf, name, data); err != nil {
 		h.t.Fatalf("Failed to render template %s: %v", name, err)
 	}
 	return buf.String()

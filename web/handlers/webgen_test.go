@@ -25,7 +25,9 @@ func TestGenerator(t *testing.T) {
 		Content:   "# Architecture\n\nThis is the architecture overview.",
 		UpdatedAt: time.Now(),
 	}
-	store.SaveDocument(archDoc)
+	if err := store.SaveDocument(archDoc); err != nil {
+		t.Fatalf("Failed to save architecture document: %v", err)
+	}
 
 	moduleDoc := &storage.Document{
 		ID:        "mod1",
@@ -34,7 +36,9 @@ func TestGenerator(t *testing.T) {
 		Content:   "# Example Package\n\nThis is an example package.",
 		UpdatedAt: time.Now(),
 	}
-	store.SaveDocument(moduleDoc)
+	if err := store.SaveDocument(moduleDoc); err != nil {
+		t.Fatalf("Failed to save module document: %v", err)
+	}
 
 	// Add test reference
 	ref := &storage.Reference{
@@ -42,16 +46,8 @@ func TestGenerator(t *testing.T) {
 		TargetID: archDoc.ID,
 		Type:     "import",
 	}
-	store.SaveReference(ref)
-
-	// Create generator
-	gen := NewGenerator(store)
-
-	// Generate documentation
-	cfg := Config{
-		ProjectName: "Test Project",
-		ProjectURL:  "https://example.com/test",
-		Theme:       "light",
+	if err := store.SaveReference(ref); err != nil {
+		t.Fatalf("Failed to save reference: %v", err)
 	}
 
 	// Test index page generation
