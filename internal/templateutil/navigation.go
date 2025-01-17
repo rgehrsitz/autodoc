@@ -1,6 +1,6 @@
-// autodoc/internal/template/nav.go
+// autodoc/internal/templateutil/navigation.go
 
-package helpers
+package templateutil
 
 import (
 	"sort"

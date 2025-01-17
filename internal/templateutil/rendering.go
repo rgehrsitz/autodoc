@@ -1,6 +1,6 @@
-// autodoc/internal/template/template.go
+// autodoc/internal/templateutil/rendering.go
 
-package helpers
+package templateutil
 
 import (
 	"embed"

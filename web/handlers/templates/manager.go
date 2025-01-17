@@ -1,4 +1,4 @@
-//autodoc/web/handlers/templates/templates.go
+//autodoc/web/handlers/templates/manager.go
 
 package templates
 

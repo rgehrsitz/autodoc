@@ -17,10 +17,10 @@ import (
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	"github.com/rgehrsitz/AutoDoc/internal/storage"
-	"github.com/rgehrsitz/AutoDoc/web/handlers/helpers"
+	"github.com/rgehrsitz/AutoDoc/internal/templateutil"
 )
 
-//go:embed templates/layouts/*.html templates/components/*.html templates/partials/*.html assets/css/*.css assets/js/*.js
+//go:embed templates/layouts/*.html templates/components/*.html templates/partials/*.html templates/assets/css/*.css templates/assets/js/*.js
 var embeddedTemplates embed.FS
 
 // Generator handles the wiki generation process
@@ -91,7 +91,7 @@ type PageData struct {
 	Title       string
 	ProjectName string
 	ProjectURL  string
-	NavItems    []helpers.NavItem // Use NavItem from helpers package
+	NavItems    []templateutil.NavItem // Use NavItem from helpers package
 	Content     template.HTML
 	LastUpdated time.Time
 	Theme       string
@@ -121,7 +121,7 @@ func (g *Generator) generateIndex(cfg Config) error {
 	})
 
 	// Create navigation structure
-	nav := helpers.BuildNavigation(modules) // Update to use helper
+	nav := templateutil.BuildNavigation(modules) // Update to use helper
 
 	data := PageData{
 		Title:       "Home",
@@ -133,7 +133,7 @@ func (g *Generator) generateIndex(cfg Config) error {
 		Theme:       cfg.Theme,
 	}
 
-	return helpers.RenderTemplate(filepath.Join(cfg.OutputDir, "index.html"), "index", data, embeddedTemplates)
+	return templateutil.RenderTemplate(filepath.Join(cfg.OutputDir, "index.html"), "index", data, embeddedTemplates)
 }
 
 func (g *Generator) generateArchitecture(cfg Config) error {
@@ -152,7 +152,7 @@ func (g *Generator) generateArchitecture(cfg Config) error {
 		return fmt.Errorf("failed to list modules: %w", err)
 	}
 
-	nav := helpers.BuildNavigation(modules)
+	nav := templateutil.BuildNavigation(modules)
 	data := PageData{
 		Title:       "Architecture",
 		ProjectName: cfg.ProjectName,
@@ -163,7 +163,7 @@ func (g *Generator) generateArchitecture(cfg Config) error {
 		Theme:       cfg.Theme,
 	}
 
-	return helpers.RenderTemplate(filepath.Join(cfg.OutputDir, "architecture.html"), "page", data, embeddedTemplates)
+	return templateutil.RenderTemplate(filepath.Join(cfg.OutputDir, "architecture.html"), "page", data, embeddedTemplates)
 }
 
 func (g *Generator) generateModules(cfg Config) error {
@@ -172,11 +172,11 @@ func (g *Generator) generateModules(cfg Config) error {
 		return fmt.Errorf("failed to list modules: %w", err)
 	}
 
-	nav := helpers.BuildNavigation(modules)
+	nav := templateutil.BuildNavigation(modules)
 
 	for _, doc := range modules {
 		// Create relative path by removing volume name and normalizing separators
-		cleanPath := helpers.SanitizePath(doc.Path)
+		cleanPath := templateutil.SanitizePath(doc.Path)
 		// Create output path relative to the wiki directory
 		outPath := filepath.Join(cfg.OutputDir, cleanPath+".html")
 
@@ -203,7 +203,7 @@ func (g *Generator) generateModules(cfg Config) error {
 				if err != nil {
 					continue
 				}
-				relativeURL := helpers.GetRelativeURL(cleanPath, helpers.SanitizePath(target.Path)+".html")
+				relativeURL := templateutil.GetRelativeURL(cleanPath, templateutil.SanitizePath(target.Path)+".html")
 				content.WriteString(fmt.Sprintf("- [%s](%s)\n", target.Path, relativeURL))
 			}
 		}
@@ -215,7 +215,7 @@ func (g *Generator) generateModules(cfg Config) error {
 				if err != nil {
 					continue
 				}
-				relativeURL := helpers.GetRelativeURL(cleanPath, helpers.SanitizePath(source.Path)+".html")
+				relativeURL := templateutil.GetRelativeURL(cleanPath, templateutil.SanitizePath(source.Path)+".html")
 				content.WriteString(fmt.Sprintf("- [%s](%s)\n", source.Path, relativeURL))
 			}
 		}
@@ -237,7 +237,7 @@ func (g *Generator) generateModules(cfg Config) error {
 			return fmt.Errorf("failed to create directory: %w", err)
 		}
 
-		if err := helpers.RenderTemplate(outPath, "page", data, embeddedTemplates); err != nil {
+		if err := templateutil.RenderTemplate(outPath, "page", data, embeddedTemplates); err != nil {
 			return fmt.Errorf("failed to render page: %w", err)
 		}
 	}
@@ -251,7 +251,7 @@ func (g *Generator) generateSearch(cfg Config) error {
 		return fmt.Errorf("failed to list modules: %w", err)
 	}
 
-	nav := helpers.BuildNavigation(modules)
+	nav := templateutil.BuildNavigation(modules)
 	data := PageData{
 		Title:       "Search",
 		ProjectName: cfg.ProjectName,
@@ -261,7 +261,7 @@ func (g *Generator) generateSearch(cfg Config) error {
 		Theme:       cfg.Theme,
 	}
 
-	return helpers.RenderTemplate(filepath.Join(cfg.OutputDir, "search.html"), "search", data, embeddedTemplates)
+	return templateutil.RenderTemplate(filepath.Join(cfg.OutputDir, "search.html"), "search", data, embeddedTemplates)
 }
 
 func (g *Generator) copyAssets(cfg Config) error {

@@ -1,6 +1,6 @@
-// autodoc/internal/template/path.go
+// autodoc/internal/templateutil/pathutil.go
 
-package helpers
+package templateutil
 
 import (
 	"path/filepath"
