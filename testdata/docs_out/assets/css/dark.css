@@ -1,0 +1,20 @@
+
+/* Dark theme */
+body {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+a {
+    color: #66b3ff;
+}
+
+pre {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+nav {
+    background-color: #2d2d2d;
+    border-right: 1px solid #404040;
+}

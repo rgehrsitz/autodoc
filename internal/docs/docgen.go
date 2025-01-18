@@ -7,17 +7,14 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
-
-	"encoding/json"
-	"log"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	analyzer "github.com/rgehrsitz/AutoDoc/internal/analysis"
-	"github.com/rgehrsitz/AutoDoc/web/handlers/templates"
 )
 
 // DocumentationGenerator handles the generation of documentation
@@ -29,11 +26,11 @@ type DocumentationGenerator struct {
 
 // Config holds configuration for documentation generation
 type Config struct {
-	OutputDir    string            // Directory where docs will be generated
-	ProjectName  string            // Name of the project
-	TemplatePath string            // Path to HTML templates
-	CustomStyles map[string]string // Optional custom CSS styles
-	Theme        string            // Theme name (e.g., "light", "dark")
+	OutputDir    string
+	ProjectName  string
+	TemplatePath string
+	CustomStyles map[string]string
+	Theme        string
 }
 
 // PageData represents the data passed to documentation templates
@@ -44,6 +41,9 @@ type PageData struct {
 	Navigation  []NavItem
 	LastUpdated time.Time
 	Theme       string
+	Description string
+	CurrentPath string
+	Components  []analyzer.ProjectComponent
 }
 
 // NavItem represents a navigation menu item
@@ -58,10 +58,8 @@ type NavItem struct {
 func NewDocumentationGenerator(config Config) (*DocumentationGenerator, error) {
 	// Create base template from layout
 	tmpl, err := template.New("layout").ParseFiles(
-		filepath.Join(config.TemplatePath, "layout.html"),
+		filepath.Join(config.TemplatePath, "layouts", "base.html"),
 		filepath.Join(config.TemplatePath, "index.html"),
-		filepath.Join(config.TemplatePath, "page.html"),
-		filepath.Join(config.TemplatePath, "search.html"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse templates: %w", err)
@@ -76,18 +74,17 @@ func NewDocumentationGenerator(config Config) (*DocumentationGenerator, error) {
 
 // Generate generates the complete documentation site
 func (g *DocumentationGenerator) Generate(structure *analyzer.ProjectStructure) error {
-	if err := os.MkdirAll(g.outDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
-	}
-
+	// Build navigation first
 	nav := g.buildNavigation(structure)
 
-	if err := g.generatePages(structure, nav); err != nil {
-		return fmt.Errorf("failed to generate pages: %w", err)
-	}
-
+	// Copy static assets
 	if err := g.copyAssets(); err != nil {
 		return fmt.Errorf("failed to copy assets: %w", err)
+	}
+
+	// Generate all pages
+	if err := g.generatePages(structure, nav); err != nil {
+		return fmt.Errorf("failed to generate pages: %w", err)
 	}
 
 	return nil
@@ -97,10 +94,6 @@ func (g *DocumentationGenerator) Generate(structure *analyzer.ProjectStructure) 
 func (g *DocumentationGenerator) generatePages(structure *analyzer.ProjectStructure, nav []NavItem) error {
 	if err := g.generateIndexPage(structure, nav); err != nil {
 		return fmt.Errorf("failed to generate index page: %w", err)
-	}
-
-	if err := g.generateArchitecturePage(structure, nav); err != nil {
-		return fmt.Errorf("failed to generate architecture page: %w", err)
 	}
 
 	for _, comp := range structure.Components {
@@ -114,147 +107,31 @@ func (g *DocumentationGenerator) generatePages(structure *analyzer.ProjectStruct
 
 // GenerateDocumentation creates documentation from the analyses map and references
 func GenerateDocumentation(outputDir string, analyses map[string]string, references map[string][]string) error {
-	language := determineLanguage(analyses)
-	projectType := determineProjectType(analyses)
-
-	// Create template engine
-	templateEngine, err := templates.NewTemplateEngine(outputDir)
-	if err != nil {
-		return fmt.Errorf("failed to create template engine: %w", err)
-	}
-
-	// Copy static assets
-	if err := templateEngine.CopyAssets(); err != nil {
-		return fmt.Errorf("failed to copy assets: %w", err)
-	}
-
+	// Convert analyses to components
 	components := convertToComponents(analyses, references)
 
-	// Create components directory
-	componentsDir := filepath.Join(outputDir, "components")
-	if err := os.MkdirAll(componentsDir, 0755); err != nil {
-		return fmt.Errorf("failed to create components directory: %w", err)
+	// Create project structure
+	structure := &analyzer.ProjectStructure{
+		Type:       determineProjectType(analyses),
+		Language:   determineLanguage(analyses),
+		Components: components,
 	}
 
-	// Create template data
-	data := &templates.TemplateData{
-		Title:       "Project Documentation",
-		ProjectName: "sample",
-		Description: fmt.Sprintf("Generated documentation for sample (%s %s)", language, projectType),
-		LastUpdated: time.Now(),
-		Components:  make([]templates.ComponentData, 0, len(components)),
-		Theme:       "light",
-		Navigation: []templates.NavigationItem{
-			{
-				Title: "Overview",
-				URL:   "../index.html",
-			},
-			{
-				Title: "Components",
-				Children: []templates.NavigationItem{
-					{
-						Title: "Calculator",
-						URL:   "calculator.html",
-					},
-					{
-						Title: "Operations",
-						URL:   "operations.html",
-					},
-				},
-			},
-		},
+	// Create documentation generator
+	config := Config{
+		OutputDir:    outputDir,
+		ProjectName:  filepath.Base(filepath.Dir(outputDir)),
+		TemplatePath: filepath.Join(filepath.Dir(filepath.Dir(outputDir)), "web", "handlers", "templates"),
 	}
 
-	// Convert components to template data and generate component pages
-	for _, file := range components {
-		// Parse the analysis JSON
-		var analysis analyzer.Analysis
-		if analysisJSON, ok := analyses[file.Path]; ok {
-			if err := json.Unmarshal([]byte(analysisJSON), &analysis); err != nil {
-				log.Printf("Warning: failed to parse analysis for %s: %v", file.Path, err)
-				continue
-			}
-		}
-
-		// Create component data for the file
-		fileData := templates.ComponentData{
-			Name:        filepath.Base(file.Path),
-			Path:        strings.TrimPrefix(file.Path, "/"),
-			Type:        "file",
-			Description: analysis.Purpose,
-			Analysis:    analyzer.ConvertToCodeAnalysis(&analysis), // Convert Analysis to CodeAnalysisSchema
-		}
-
-		// Create sub-components for each component in the file
-		var subComponents []templates.ComponentData
-		for _, comp := range analysis.Components {
-			subComponents = append(subComponents, templates.ComponentData{
-				Name:        comp.Name,
-				Path:        strings.ToLower(strings.ReplaceAll(comp.Name, ".", "/")),
-				Type:        comp.Type,
-				Description: comp.Description,
-				Analysis:    analyzer.ConvertToCodeAnalysis(&analysis), // Convert Analysis to CodeAnalysisSchema
-			})
-		}
-		fileData.SubComponents = subComponents
-
-		data.Components = append(data.Components, fileData)
-
-		// Generate component page
-		componentHTML, err := templateEngine.RenderPage(&templates.TemplateData{
-			Title:       fileData.Name,
-			ProjectName: "sample",
-			Description: fileData.Description,
-			LastUpdated: time.Now(),
-			Components:  []templates.ComponentData{fileData},
-			Theme:       "light",
-			Navigation: []templates.NavigationItem{
-				{
-					Title: "Overview",
-					URL:   "../index.html",
-				},
-				{
-					Title: "Components",
-					Children: []templates.NavigationItem{
-						{
-							Title: "Calculator",
-							URL:   "calculator.html",
-						},
-						{
-							Title: "Operations",
-							URL:   "operations.html",
-						},
-					},
-				},
-			},
-			CurrentPath: fmt.Sprintf("components/%s.html", strings.ToLower(fileData.Name)),
-		}, "component", "content")
-		if err != nil {
-			return fmt.Errorf("failed to render component page for %s: %w", fileData.Name, err)
-		}
-
-		// Write component page
-		componentPath := filepath.Join(componentsDir, strings.ToLower(fileData.Name)+".html")
-		if err := os.WriteFile(componentPath, []byte(componentHTML), 0644); err != nil {
-			return fmt.Errorf("failed to write component page for %s: %w", fileData.Name, err)
-		}
+	generator, err := NewDocumentationGenerator(config)
+	if err != nil {
+		return fmt.Errorf("failed to create documentation generator: %w", err)
 	}
 
 	// Generate documentation
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
-	}
-
-	// Render index page
-	indexHTML, err := templateEngine.RenderPage(data, "layout", "index")
-	if err != nil {
-		return fmt.Errorf("failed to render index page: %w", err)
-	}
-
-	// Write index page
-	indexPath := filepath.Join(outputDir, "index.html")
-	if err := os.WriteFile(indexPath, []byte(indexHTML), 0644); err != nil {
-		return fmt.Errorf("failed to write index page: %w", err)
+	if err := generator.Generate(structure); err != nil {
+		return fmt.Errorf("failed to generate documentation: %w", err)
 	}
 
 	return nil
@@ -264,106 +141,75 @@ func GenerateDocumentation(outputDir string, analyses map[string]string, referen
 func (g *DocumentationGenerator) buildNavigation(structure *analyzer.ProjectStructure) []NavItem {
 	nav := []NavItem{
 		{
-			Title: "Home",
+			Title: "Overview",
 			URL:   "index.html",
-		},
-		{
-			Title: "Architecture",
-			URL:   "architecture.html",
 		},
 	}
 
+	// Group components by package
+	packageGroups := make(map[string][]analyzer.ProjectComponent)
+	for _, comp := range structure.Components {
+		pkgPath := filepath.Dir(comp.Path)
+		if pkgPath == "." {
+			pkgPath = "root"
+		}
+		packageGroups[pkgPath] = append(packageGroups[pkgPath], comp)
+	}
+
 	if len(structure.Components) > 0 {
-		components := NavItem{
-			Title:    "Components",
-			Children: make([]NavItem, 0, len(structure.Components)),
+		packages := NavItem{
+			Title:    "Packages",
+			Children: make([]NavItem, 0),
 		}
 
-		for _, comp := range structure.Components {
-			components.Children = append(components.Children, NavItem{
-				Title: comp.Name,
-				URL:   fmt.Sprintf("components/%s.html", g.sanitizePath(comp.Path)),
+		// Sort package names for consistent ordering
+		pkgNames := make([]string, 0, len(packageGroups))
+		for pkg := range packageGroups {
+			pkgNames = append(pkgNames, pkg)
+		}
+		sort.Strings(pkgNames)
+
+		// Create navigation structure for each package
+		for _, pkgName := range pkgNames {
+			components := packageGroups[pkgName]
+			pkgNav := NavItem{
+				Title:    filepath.Base(pkgName),
+				Children: make([]NavItem, 0, len(components)),
+			}
+
+			// Sort components within package
+			sort.Slice(components, func(i, j int) bool {
+				return components[i].Name < components[j].Name
 			})
+
+			for _, comp := range components {
+				pkgNav.Children = append(pkgNav.Children, NavItem{
+					Title: comp.Name,
+					URL:   g.getComponentURL(comp),
+				})
+			}
+
+			packages.Children = append(packages.Children, pkgNav)
 		}
 
-		nav = append(nav, components)
+		nav = append(nav, packages)
 	}
 
 	return nav
 }
 
-// copyAssets copies static assets to the output directory
-func (g *DocumentationGenerator) copyAssets() error {
-	assetsDir := filepath.Join(g.outDir, "assets")
-	if err := os.MkdirAll(assetsDir, 0755); err != nil {
-		return fmt.Errorf("failed to create assets directory: %w", err)
+// getComponentURL generates the URL for a component
+func (g *DocumentationGenerator) getComponentURL(comp analyzer.ProjectComponent) string {
+	pkgPath := filepath.Dir(comp.Path)
+	baseName := g.sanitizePath(comp.Name)
+	
+	if pkgPath == "." {
+		return fmt.Sprintf("components/%s.html", baseName)
 	}
-
-	assets := map[string]string{
-		"style.css": defaultStyles,
-		"script.js": defaultScript,
-	}
-
-	for name, content := range assets {
-		if err := os.WriteFile(filepath.Join(assetsDir, name), []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to write asset %s: %w", name, err)
-		}
-	}
-
-	return nil
-}
-
-// generateIndexPage creates the main index.html
-func (g *DocumentationGenerator) generateIndexPage(structure *analyzer.ProjectStructure, nav []NavItem) error {
-	content := strings.Builder{}
-	content.WriteString(fmt.Sprintf("# %s Documentation\n\n", g.projectName))
-	content.WriteString(fmt.Sprintf("**Project Type:** %s  \n", structure.Type))
-	content.WriteString(fmt.Sprintf("**Primary Language:** %s\n\n", structure.Language))
-
-	content.WriteString("## Project Structure\n\n")
-	for _, comp := range structure.Components {
-		content.WriteString(fmt.Sprintf("### [%s](components/%s.html)\n", comp.Name, g.sanitizePath(comp.Path)))
-		if comp.Description != "" {
-			content.WriteString(comp.Description + "\n\n")
-		}
-	}
-
-	return g.renderPage("index.html", "Home", content.String(), nav)
-}
-
-// generateArchitecturePage creates the architecture overview page
-func (g *DocumentationGenerator) generateArchitecturePage(structure *analyzer.ProjectStructure, nav []NavItem) error {
-	content := strings.Builder{}
-	content.WriteString("# Architecture Overview\n\n")
-	content.WriteString(fmt.Sprintf("This is a %s project primarily written in %s.\n\n", structure.Type, structure.Language))
-
-	content.WriteString("## Component Diagram\n\n")
-	content.WriteString("```mermaid\ngraph TD\n")
-	for _, ref := range structure.References {
-		content.WriteString(fmt.Sprintf("    %s-->|%s|%s\n",
-			g.sanitizePath(ref.Source),
-			ref.Type,
-			g.sanitizePath(ref.Target)))
-	}
-	content.WriteString("```\n\n")
-
-	content.WriteString("## Components\n\n")
-	for _, comp := range structure.Components {
-		content.WriteString(fmt.Sprintf("### %s\n", comp.Name))
-		content.WriteString(fmt.Sprintf("**Type:** %s\n\n", comp.Type))
-		if comp.Description != "" {
-			content.WriteString(comp.Description + "\n\n")
-		}
-		if len(comp.References) > 0 {
-			content.WriteString("**Dependencies:**\n\n")
-			for _, ref := range comp.References {
-				content.WriteString(fmt.Sprintf("- %s\n", ref))
-			}
-			content.WriteString("\n")
-		}
-	}
-
-	return g.renderPage("architecture.html", "Architecture", content.String(), nav)
+	
+	// Create package-specific directory
+	pkgDir := g.sanitizePath(pkgPath)
+	return fmt.Sprintf("components/%s/%s.html", pkgDir, baseName)
 }
 
 // generateComponentPage creates documentation for a component
@@ -377,6 +223,14 @@ func (g *DocumentationGenerator) generateComponentPage(comp analyzer.ProjectComp
 		content.WriteString(comp.Description + "\n\n")
 	}
 
+	content.WriteString("## Package\n\n")
+	pkgPath := filepath.Dir(comp.Path)
+	if pkgPath == "." {
+		content.WriteString("Root package\n\n")
+	} else {
+		content.WriteString(fmt.Sprintf("Package `%s`\n\n", pkgPath))
+	}
+
 	content.WriteString("## Files\n\n")
 	for _, file := range comp.Files {
 		content.WriteString(fmt.Sprintf("- `%s`\n", file))
@@ -386,18 +240,43 @@ func (g *DocumentationGenerator) generateComponentPage(comp analyzer.ProjectComp
 	if len(comp.References) > 0 {
 		content.WriteString("## Dependencies\n\n")
 		for _, ref := range comp.References {
-			content.WriteString(fmt.Sprintf("- [%s](components/%s.html)\n",
-				ref, g.sanitizePath(ref)))
+			// Find the component being referenced to get its proper URL
+			var refURL string
+			for _, c := range structure.Components {
+				if c.Name == ref {
+					refURL = g.getComponentURL(c)
+					break
+				}
+			}
+			if refURL == "" {
+				refURL = fmt.Sprintf("components/%s.html", g.sanitizePath(ref))
+			}
+			content.WriteString(fmt.Sprintf("- [%s](%s)\n", ref, refURL))
 		}
 		content.WriteString("\n")
 	}
 
-	outPath := filepath.Join("components", g.sanitizePath(comp.Path)+".html")
-	return g.renderPage(outPath, comp.Name, content.String(), nav)
+	// Create subdirectories based on package structure
+	pkgPath = filepath.Dir(comp.Path)
+	var outPath string
+	if pkgPath == "." {
+		outPath = filepath.Join("components", g.sanitizePath(comp.Name)+".html")
+	} else {
+		// Create package-specific directory
+		pkgDir := g.sanitizePath(pkgPath)
+		outPath = filepath.Join("components", pkgDir, g.sanitizePath(comp.Name)+".html")
+		
+		// Create the package directory if it doesn't exist
+		if err := os.MkdirAll(filepath.Join(g.outDir, "components", pkgDir), 0755); err != nil {
+			return fmt.Errorf("failed to create package directory: %w", err)
+		}
+	}
+
+	return g.renderPage(outPath, comp.Name, content.String(), nav, structure)
 }
 
 // renderPage renders a markdown page through the HTML template
-func (g *DocumentationGenerator) renderPage(outPath, title, markdown string, nav []NavItem) error {
+func (g *DocumentationGenerator) renderPage(outPath, title, markdown string, nav []NavItem, structure *analyzer.ProjectStructure) error {
 	html := g.markdownToHTML(markdown)
 
 	data := PageData{
@@ -407,6 +286,9 @@ func (g *DocumentationGenerator) renderPage(outPath, title, markdown string, nav
 		Navigation:  nav,
 		LastUpdated: time.Now(),
 		Theme:       "light",
+		Description: "", // Add empty description for now
+		CurrentPath: outPath,
+		Components:  structure.Components, // Include components for templates
 	}
 
 	outPath = filepath.Join(g.outDir, outPath)
@@ -421,11 +303,9 @@ func (g *DocumentationGenerator) renderPage(outPath, title, markdown string, nav
 	defer f.Close()
 
 	// Use the appropriate template based on content type
-	templateName := "page"
-	if outPath == "index.html" {
+	templateName := "layout"
+	if filepath.Base(outPath) == "index.html" {
 		templateName = "index"
-	} else if outPath == "search.html" {
-		templateName = "search"
 	}
 
 	if err := g.templates.ExecuteTemplate(f, templateName, data); err != nil {
@@ -435,42 +315,70 @@ func (g *DocumentationGenerator) renderPage(outPath, title, markdown string, nav
 	return nil
 }
 
-// sanitizePath creates a safe filename from a path
-func (g *DocumentationGenerator) sanitizePath(path string) string {
-	name := strings.ReplaceAll(path, string(filepath.Separator), "_")
-	name = strings.Map(func(r rune) rune {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
-			return r
+// generateIndexPage creates the main index.html
+func (g *DocumentationGenerator) generateIndexPage(structure *analyzer.ProjectStructure, nav []NavItem) error {
+	content := strings.Builder{}
+	content.WriteString("# Project Documentation\n\n")
+
+	if len(structure.Components) > 0 {
+		content.WriteString("## Components\n\n")
+
+		// Group components by package
+		packageGroups := make(map[string][]analyzer.ProjectComponent)
+		for _, comp := range structure.Components {
+			pkgPath := filepath.Dir(comp.Path)
+			if pkgPath == "." {
+				pkgPath = "root"
+			}
+			packageGroups[pkgPath] = append(packageGroups[pkgPath], comp)
 		}
-		return '_'
-	}, name)
-	return name
-}
 
-// markdownToHTML converts markdown to HTML with our preferred settings
-func (g *DocumentationGenerator) markdownToHTML(input string) string {
-	extensions := parser.CommonExtensions | parser.AutoHeadingIDs
-	p := parser.NewWithExtensions(extensions)
+		// Sort package names for consistent ordering
+		pkgNames := make([]string, 0, len(packageGroups))
+		for pkg := range packageGroups {
+			pkgNames = append(pkgNames, pkg)
+		}
+		sort.Strings(pkgNames)
 
-	doc := p.Parse([]byte(input))
+		// List components by package
+		for _, pkg := range pkgNames {
+			if pkg == "root" {
+				content.WriteString("### Root Package\n\n")
+			} else {
+				content.WriteString(fmt.Sprintf("### Package %s\n\n", pkg))
+			}
 
-	opts := html.RendererOptions{
-		Flags: html.CommonFlags | html.HrefTargetBlank,
+			components := packageGroups[pkg]
+			sort.Slice(components, func(i, j int) bool {
+				return components[i].Name < components[j].Name
+			})
+
+			for _, comp := range components {
+				url := g.getComponentURL(comp)
+				content.WriteString(fmt.Sprintf("- [%s](%s) - %s\n", 
+					comp.Name, 
+					url, 
+					comp.Description))
+			}
+			content.WriteString("\n")
+		}
 	}
-	renderer := html.NewRenderer(opts)
 
-	return string(markdown.Render(doc, renderer))
+	return g.renderPage("index.html", "Overview", content.String(), nav, structure)
 }
 
 // Helper functions for GenerateDocumentation
 func determineLanguage(analyses map[string]string) string {
 	for path := range analyses {
-		ext := filepath.Ext(path)
-		switch ext {
-		case ".go":
-			return "go"
-		case ".cs":
-			return "csharp"
+		switch {
+		case strings.HasSuffix(path, ".go"):
+			return "Go"
+		case strings.HasSuffix(path, ".cs"):
+			return "C#"
+		case strings.HasSuffix(path, ".js"):
+			return "JavaScript"
+		case strings.HasSuffix(path, ".py"):
+			return "Python"
 		}
 	}
 	return "unknown"
@@ -489,93 +397,160 @@ func determineProjectType(analyses map[string]string) string {
 }
 
 func convertToComponents(analyses map[string]string, references map[string][]string) []analyzer.ProjectComponent {
-	components := make([]analyzer.ProjectComponent, 0)
-	componentMap := make(map[string]*analyzer.ProjectComponent)
-
+	components := make([]analyzer.ProjectComponent, 0, len(analyses))
 	for path, content := range analyses {
-		dir := filepath.Dir(path)
-		comp, exists := componentMap[dir]
-		if !exists {
-			comp = &analyzer.ProjectComponent{
-				Path:        dir,
-				Name:        filepath.Base(dir),
-				Type:        "package",
-				Description: "",
-				Files:       []string{},
-				References:  references[path],
-			}
-			componentMap[dir] = comp
+		component := analyzer.ProjectComponent{
+			Name:        filepath.Base(path),
+			Path:        path,
+			Type:        "file",
+			Description: content,
+			References:  references[path],
 		}
-		comp.Files = append(comp.Files, path)
-
-		if comp.Description == "" {
-			parts := strings.SplitN(content, "\n\n", 2)
-			if len(parts) > 0 {
-				comp.Description = strings.TrimSpace(parts[0])
-			}
-		}
+		components = append(components, component)
 	}
-
-	for _, comp := range componentMap {
-		components = append(components, *comp)
-	}
-
 	return components
+}
+
+// sanitizePath creates a safe filename from a path
+func (g *DocumentationGenerator) sanitizePath(path string) string {
+	// Only sanitize the filename portion
+	name := filepath.Base(path)
+	
+	// Remove .go extension if present
+	name = strings.TrimSuffix(name, ".go")
+	
+	// Replace problematic characters while preserving meaningful ones
+	name = strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z':
+			return r
+		case r >= 'A' && r <= 'Z':
+			return r
+		case r >= '0' && r <= '9':
+			return r
+		case r == '-' || r == '_':
+			return r
+		case r == ' ':
+			return '-'
+		default:
+			return '_'
+		}
+	}, name)
+	
+	return strings.ToLower(name)
+}
+
+// markdownToHTML converts markdown to HTML with our preferred settings
+func (g *DocumentationGenerator) markdownToHTML(input string) string {
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs
+	p := parser.NewWithExtensions(extensions)
+
+	doc := p.Parse([]byte(input))
+
+	opts := html.RendererOptions{
+		Flags: html.CommonFlags | html.HrefTargetBlank,
+	}
+	renderer := html.NewRenderer(opts)
+
+	return string(markdown.Render(doc, renderer))
+}
+
+// copyAssets copies static assets to the output directory
+func (g *DocumentationGenerator) copyAssets() error {
+	assetsDir := filepath.Join(g.outDir, "assets")
+	if err := os.MkdirAll(assetsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create assets directory: %w", err)
+	}
+
+	// Create CSS subdirectory
+	cssDir := filepath.Join(assetsDir, "css")
+	if err := os.MkdirAll(cssDir, 0755); err != nil {
+		return fmt.Errorf("failed to create css directory: %w", err)
+	}
+
+	// Create JS subdirectory
+	jsDir := filepath.Join(assetsDir, "js")
+	if err := os.MkdirAll(jsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create js directory: %w", err)
+	}
+
+	// Copy CSS files
+	cssFiles := map[string]string{
+		"style.css": defaultStyles,
+		"light.css": lightTheme,
+		"dark.css":  darkTheme,
+	}
+
+	for name, content := range cssFiles {
+		if err := os.WriteFile(filepath.Join(cssDir, name), []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to write CSS file %s: %w", name, err)
+		}
+	}
+
+	// Copy JS files
+	jsFiles := map[string]string{
+		"search.js": searchScript,
+	}
+
+	for name, content := range jsFiles {
+		if err := os.WriteFile(filepath.Join(jsDir, name), []byte(content), 0644); err != nil {
+			return fmt.Errorf("failed to write JS file %s: %w", name, err)
+		}
+	}
+
+	return nil
 }
 
 // Default styles and scripts
 const (
 	defaultStyles = `
+/* Base styles */
 body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
     margin: 0;
     padding: 0;
-    font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    line-height: 1.5;
 }
 
-.nav {
-    position: fixed;
-    width: 250px;
-    height: 100vh;
-    overflow-y: auto;
-    padding: 20px;
-    background: #f8f9fa;
-    border-right: 1px solid #dee2e6;
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
 }
 
+/* Navigation */
+nav {
+    padding: 1rem;
+}
+
+.nav-item {
+    margin-bottom: 1rem;
+}
+
+.nav-group {
+    margin-bottom: 1.5rem;
+}
+
+/* Content */
 .content {
-    margin-left: 290px;
-    padding: 20px 40px;
-    max-width: 900px;
+    margin-left: 16rem;
+    padding: 2rem;
 }
 
+/* Code blocks */
 pre {
-    background: #f8f9fa;
-    padding: 15px;
+    background-color: #f5f5f5;
+    padding: 1rem;
     border-radius: 4px;
     overflow-x: auto;
 }
 
 code {
-    background: #f8f9fa;
-    padding: 2px 4px;
-    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
-.nav-item {
-    margin: 10px 0;
-}
-
-.nav-group {
-    margin: 20px 0;
-}
-
-.nav-children {
-    margin-left: 20px;
-}
-
+/* Links */
 a {
-    color: #0366d6;
     text-decoration: none;
 }
 
@@ -584,11 +559,64 @@ a:hover {
 }
 `
 
-	defaultScript = `
+	lightTheme = `
+/* Light theme */
+body {
+    background-color: #ffffff;
+    color: #1a1a1a;
+}
+
+a {
+    color: #0066cc;
+}
+
+pre {
+    background-color: #f5f5f5;
+    color: #1a1a1a;
+}
+
+nav {
+    background-color: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+}
+`
+
+	darkTheme = `
+/* Dark theme */
+body {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+a {
+    color: #66b3ff;
+}
+
+pre {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+nav {
+    background-color: #2d2d2d;
+    border-right: 1px solid #404040;
+}
+`
+
+	searchScript = `
 document.addEventListener('DOMContentLoaded', function() {
-    if (typeof mermaid !== 'undefined') {
-        mermaid.initialize({ startOnLoad: true });
-    }
+    const themeToggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+
+    // Check for saved theme preference
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    html.classList.toggle('dark', savedTheme === 'dark');
+
+    // Theme toggle functionality
+    themeToggle.addEventListener('click', function() {
+        html.classList.toggle('dark');
+        localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+    });
 });
 `
 )
